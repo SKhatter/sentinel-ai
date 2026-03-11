@@ -13,7 +13,7 @@
 
 const express = require('express');
 const cors = require('cors');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -926,17 +926,14 @@ function seedDemoData() {
 // ============================================================
 // CONTACT
 // ============================================================
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 app.post('/api/contact', async (req, res) => {
   const { name, org, email, message } = req.body;
   if (!name || !email || !message) return res.status(400).json({ error: 'Missing required fields' });
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    await resend.emails.send({
+      from: 'Sentinel.AI <onboarding@resend.dev>',
       to: 'sumedhakhatter482@gmail.com',
       subject: `Sentinel.AI — Message from ${name}${org ? ` (${org})` : ''}`,
       text: `Name: ${name}\nOrg: ${org || '—'}\nEmail: ${email}\n\n${message}`,
