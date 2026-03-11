@@ -372,14 +372,6 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px 40p
       <a href="/agent-demo"><button class="btn-hero btn-hero-primary" style="font-size:14px;padding:12px 24px">🤖 Live Agent Demo</button></a>
       <a href="/dashboard"><button class="btn-hero btn-hero-secondary" style="font-size:14px;padding:12px 24px">📊 Open Dashboard</button></a>
     </div>
-    <div style="border-top:1px solid var(--border);padding-top:20px;margin-top:8px">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Or get early access — we'll reach out within 24 hours</div>
-      <div class="cta-input-row">
-        <input class="cta-input" type="email" placeholder="your@email.com" id="email-input">
-        <button class="cta-submit" onclick="submitEmail()">Get Early Access</button>
-      </div>
-      <div class="cta-note" id="email-status">No spam. Unsubscribe anytime.</div>
-    </div>
   </div>
 </section>
 
@@ -437,19 +429,37 @@ const observer = new IntersectionObserver(entries => {
 document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
 // Contact form submit
-function submitContact(e) {
+async function submitContact(e) {
   e.preventDefault();
   const status = document.getElementById('contact-status');
   const btn = e.target.querySelector('.form-submit');
   btn.textContent = 'Sending...';
   btn.disabled = true;
-  setTimeout(() => {
-    status.textContent = '✅ Message sent! We\'ll get back to you within 24 hours.';
-    status.style.color = '#34d399';
-    btn.textContent = 'Send Message →';
-    btn.disabled = false;
-    e.target.reset();
-  }, 1000);
+  try {
+    const res = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: document.getElementById('contact-name').value,
+        org: document.getElementById('contact-org').value,
+        email: document.getElementById('contact-email').value,
+        message: document.getElementById('contact-query').value,
+      })
+    });
+    if (res.ok) {
+      status.textContent = '✅ Message sent! We\'ll get back to you within 24 hours.';
+      status.style.color = '#34d399';
+      e.target.reset();
+    } else {
+      status.textContent = '⚠ Something went wrong. Please try again.';
+      status.style.color = '#f87171';
+    }
+  } catch {
+    status.textContent = '⚠ Could not send. Please try again.';
+    status.style.color = '#f87171';
+  }
+  btn.textContent = 'Send Message →';
+  btn.disabled = false;
 }
 
 // Email submit

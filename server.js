@@ -13,6 +13,7 @@
 
 const express = require('express');
 const cors = require('cors');
+const nodemailer = require('nodemailer');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -921,6 +922,31 @@ function seedDemoData() {
   console.log(`✅ Seeded: ${agentTraces.size} traces, ${agentSpans.length} spans, ${agentIncidents.length} incidents, ${workflows.size} workflows`);
   console.log(`   Circuit breakers: ${circuitBreakers.size}, Error budgets: ${errorBudgets.size}, DLQ: ${deadLetterQueue.length}`);
 }
+
+// ============================================================
+// CONTACT
+// ============================================================
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+});
+
+app.post('/api/contact', async (req, res) => {
+  const { name, org, email, message } = req.body;
+  if (!name || !email || !message) return res.status(400).json({ error: 'Missing required fields' });
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: 'sumedhakhatter482@gmail.com',
+      subject: `Sentinel.AI — Message from ${name}${org ? ` (${org})` : ''}`,
+      text: `Name: ${name}\nOrg: ${org || '—'}\nEmail: ${email}\n\n${message}`,
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Contact email error:', err.message);
+    res.status(500).json({ error: 'Failed to send email' });
+  }
+});
 
 // ============================================================
 // START
