@@ -8,8 +8,7 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.22.1",
-    "resend": "^6.9.3"
+    "express": "^4.22.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

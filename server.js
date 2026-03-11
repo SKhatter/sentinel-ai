@@ -13,7 +13,6 @@
 
 const express = require('express');
 const cors = require('cors');
-const { Resend } = require('resend');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -926,23 +925,30 @@ function seedDemoData() {
 // ============================================================
 // CONTACT
 // ============================================================
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 app.post('/api/contact', async (req, res) => {
   const { name, org, email, message } = req.body;
   console.log('Contact form submission:', { name, org, email, messageLength: message?.length });
   if (!name || !email || !message) return res.status(400).json({ error: 'Missing required fields' });
   try {
-    const result = await resend.emails.send({
-      from: 'Sentinel.AI <onboarding@resend.dev>',
-      to: 'sumedhakhatter482@gmail.com',
-      subject: `Sentinel.AI — Message from ${name}${org ? ` (${org})` : ''}`,
-      text: `Name: ${name}\nOrg: ${org || '—'}\nEmail: ${email}\n\n${message}`,
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Sentinel.AI <onboarding@resend.dev>',
+        to: 'sumedhakhatter482@gmail.com',
+        subject: `Sentinel.AI — Message from ${name}${org ? ` (${org})` : ''}`,
+        text: `Name: ${name}\nOrg: ${org || '—'}\nEmail: ${email}\n\n${message}`,
+      }),
     });
+    const result = await response.json();
     console.log('Resend result:', JSON.stringify(result));
+    if (!response.ok) throw new Error(result.message || 'Resend API error');
     res.json({ ok: true });
   } catch (err) {
-    console.error('Contact email error:', err.message, err.stack);
+    console.error('Contact email error:', err.message);
     res.status(500).json({ error: 'Failed to send email' });
   }
 });
