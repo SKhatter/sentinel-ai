@@ -1,5 +1,5 @@
 /**
- * Agent Reliability Platform — Production Backend
+ * Sentinel.AI — Production Backend
  * ================================================
  * Features:
  *  - Multi-agent orchestration tracing (parent/child graphs)
@@ -77,7 +77,8 @@ app.use((req, res, next) => {
 // ============================================================
 // STATIC ROUTES
 // ============================================================
-app.get('/', (req, res) => res.sendFile(__dirname + '/dashboard.html'));
+app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
+app.get('/dashboard', (req, res) => res.sendFile(__dirname + '/dashboard.html'));
 app.get('/demo', (req, res) => res.sendFile(__dirname + '/demo-app.html'));
 app.get('/agent-demo', (req, res) => res.sendFile(__dirname + '/agent-demo.html'));
 
@@ -925,7 +926,7 @@ function seedDemoData() {
 // START
 // ============================================================
 app.listen(PORT, () => {
-  console.log(`\n🚀 Agent Reliability Platform — http://localhost:${PORT}`);
+  console.log(`\n🚀 Sentinel.AI — http://localhost:${PORT}`);
   console.log(`   Workflows:       /api/workflows`);
   console.log(`   Circuit Breakers:/api/agent/circuit-breakers`);
   console.log(`   Error Budgets:   /api/agent/error-budgets`);

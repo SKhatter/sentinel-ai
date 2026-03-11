@@ -279,6 +279,27 @@
     .stat-mini-val { font-size: 16px; font-weight: 700; color: #fff; }
     .stat-mini-label { font-size: 10px; color: #475569; margin-top: 1px; }
 
+    /* Failure scenario buttons */
+    .scenario-section { margin-top: 24px; }
+    .scenario-title { font-size: 11px; color: #f87171; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .scenario-btn {
+      padding: 10px 14px;
+      background: #0f1629;
+      border: 1px solid #450a0a;
+      border-radius: 10px;
+      font-size: 11px;
+      color: #f87171;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+      line-height: 1.4;
+    }
+    .scenario-btn:hover { background: #450a0a33; border-color: #f87171; }
+    .scenario-btn .sc-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+    .scenario-btn .sc-name { font-weight: 700; color: #fca5a5; display: block; }
+    .scenario-btn .sc-desc { color: #64748b; font-size: 10px; }
+
     /* Scrollbar */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -293,12 +314,13 @@
     <div class="header-logo">🛍️</div>
     <div>
       <div class="header-title">TechStore AI Support</div>
-      <div class="header-sub">Powered by Agent Reliability Platform</div>
+      <div class="header-sub">Powered by Sentinel.AI</div>
     </div>
   </div>
   <div class="header-right">
+    <a href="/" style="padding:6px 14px;background:transparent;color:#64748b;border:1px solid #1e2d4a;border-radius:6px;font-size:12px;text-decoration:none;transition:all .15s" onmouseover="this.style.color='#e2e8f0'" onmouseout="this.style.color='#64748b'">← Sentinel.AI</a>
     <span class="model-badge">⚡ GPT-5.2</span>
-    <a href="http://localhost:3001" target="_blank" class="dashboard-link">📊 View Dashboard</a>
+    <a href="/dashboard" class="dashboard-link">📊 View Dashboard</a>
   </div>
 </div>
 
@@ -319,6 +341,33 @@
           <button class="quick-btn" onclick="sendQuick('Can I cancel order ORD-1003?')">❌ Cancel order ORD-1003</button>
           <button class="quick-btn" onclick="sendQuick('Do you accept PayPal?')">💳 Payment methods</button>
           <button class="quick-btn" onclick="sendQuick('My laptop is broken, warranty claim')">🔧 Warranty claim</button>
+        </div>
+
+        <!-- FAILURE SCENARIOS -->
+        <div class="scenario-section">
+          <div class="scenario-title">🔥 Failure Scenarios — Watch Sentinel.AI catch these live</div>
+          <div class="scenario-grid">
+            <button class="scenario-btn" onclick="runScenario('loop')">
+              <span class="sc-icon">🔁</span>
+              <span class="sc-name">Agent Loop</span>
+              <span class="sc-desc">Agent calls search_web 7× in a row — infinite loop detected</span>
+            </button>
+            <button class="scenario-btn" onclick="runScenario('latency')">
+              <span class="sc-icon">🐢</span>
+              <span class="sc-name">Latency Spike</span>
+              <span class="sc-desc">LLM call takes 18s — P95 SLO breached, incident fired</span>
+            </button>
+            <button class="scenario-btn" onclick="runScenario('tool_error')">
+              <span class="sc-icon">💥</span>
+              <span class="sc-name">Tool Failure + Retry</span>
+              <span class="sc-desc">Database tool returns 500 error, retried 3× then sent to DLQ</span>
+            </button>
+            <button class="scenario-btn" onclick="runScenario('circuit_breaker')">
+              <span class="sc-icon">⚡</span>
+              <span class="sc-name">Circuit Breaker Trip</span>
+              <span class="sc-desc">3 consecutive failures → circuit breaker OPEN, agent blocked</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -368,7 +417,7 @@
 </div>
 
 <script>
-const API = 'http://localhost:3001';
+const API = '';
 let totalRuns = 0, totalTokens = 0, totalTools = 0;
 let isRunning = false;
 
@@ -644,7 +693,7 @@ function markTraceComplete(card) {
   statusEl.className = 'trace-status completed';
   statusEl.textContent = 'completed';
   const footer = card.querySelector('[id^="footer-"]');
-  if (footer) footer.innerHTML = `<span>✅ completed</span><span>📊 <a href="http://localhost:3001" target="_blank" style="color:#60a5fa">view on dashboard</a></span>`;
+  if (footer) footer.innerHTML = `<span>✅ completed</span><span>📊 <a href="/dashboard?trace=${card.id.replace('trace-','')}" style="color:#60a5fa">view on dashboard</a></span>`;
 }
 
 function updateStats() {
@@ -751,6 +800,9 @@ async function sendMessage() {
   // Show agent response with steps
   addMessage('agent', response || 'I apologize, I could not process your request.', stepLog);
 
+  // Show Sentinel.AI reliability summary after every run
+  showReliabilitySummary(query, stepLog);
+
   isRunning = false;
   document.getElementById('send-btn').disabled = false;
   input.focus();
@@ -774,6 +826,242 @@ function autoResize(el) {
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── FAILURE SCENARIO RUNNERS ─────────────────────────────────
+async function runScenario(type) {
+  if (isRunning) return;
+  isRunning = true;
+  document.getElementById('send-btn').disabled = true;
+
+  const welcome = document.getElementById('welcome-screen');
+  if (welcome) welcome.remove();
+
+  const scenarios = {
+    loop: {
+      label: '🔁 Agent Loop Detected',
+      agentName: 'support-agent-gpt52',
+      description: 'Agent called search_web 7 times in a row — Sentinel.AI detected an infinite loop and fired a CRITICAL incident.',
+      color: '#f87171'
+    },
+    latency: {
+      label: '🐢 Latency Spike — SLO Breached',
+      agentName: 'support-agent-gpt52',
+      description: 'LLM call took 18,400ms — P95 latency SLO (5,000ms) breached. Incident created.',
+      color: '#fb923c'
+    },
+    tool_error: {
+      label: '💥 Tool Failure + DLQ',
+      agentName: 'support-agent-gpt52',
+      description: 'query_database returned HTTP 500 three times. After 3 retries, task sent to Dead Letter Queue.',
+      color: '#f87171'
+    },
+    circuit_breaker: {
+      label: '⚡ Circuit Breaker OPEN',
+      agentName: 'support-agent-gpt52',
+      description: '3 consecutive failures tripped the circuit breaker. Agent is now BLOCKED. Auto-recovery in 60s.',
+      color: '#fbbf24'
+    }
+  };
+
+  const sc = scenarios[type];
+  const traceId = 'trace_fail_' + Date.now().toString(36);
+  const sessionId = 'session_fail_' + Math.floor(Date.now()/1000);
+  const userId = 'user_demo_1';
+
+  // Show system message
+  const sysDiv = document.createElement('div');
+  sysDiv.style.cssText = `padding:10px 14px;background:#450a0a22;border:1px solid #dc2626;border-radius:8px;font-size:12px;color:#f87171;margin-bottom:8px`;
+  sysDiv.innerHTML = `<strong>🔥 Running scenario: ${sc.label}</strong><br><span style="color:#64748b;font-size:11px">Watch the trace panel → then check the dashboard for the incident</span>`;
+  document.getElementById('chat-messages').appendChild(sysDiv);
+  document.getElementById('chat-messages').scrollTop = 99999;
+
+  const traceCard = createTraceCard(traceId, sc.label);
+  totalRuns++;
+  updateStats();
+
+  // Send agent_start
+  await sendSpans([makeSpan(traceId, 'agent_start', sc.agentName, sessionId, userId, {latency_ms: 20})]);
+
+  if (type === 'loop') {
+    // 7 repeated tool calls to same tool → triggers agent_loop incident
+    addSpanToCard(traceCard, 'llm_call', 'GPT-5.2 reasoning...', null, true);
+    await sleep(600);
+    await sendSpans([makeSpan(traceId, 'llm_call', sc.agentName, sessionId, userId, {model:'gpt-5.2', prompt_tokens:400, completion_tokens:80, latency_ms:600})]);
+    updateSpanInCard(traceCard, 'llm_call', 'GPT-5.2 → 400+80 tokens', 600);
+
+    for (let i = 0; i < 7; i++) {
+      addSpanToCard(traceCard, 'tool_call', `🔧 search_web("find order status") [call ${i+1}/7]`, null, true);
+      await sleep(300);
+      totalTools++;
+      updateStats();
+      await sendSpans([makeSpan(traceId, 'tool_call', sc.agentName, sessionId, userId, {
+        tool_name: 'search_web',
+        tool_input: {query: 'find order status'},
+        tool_output: {results: [], status: 'no_results'},
+        latency_ms: 300
+      })]);
+      updateSpanInCard(traceCard, 'tool_call', `search_web call ${i+1} — no results`, 300);
+    }
+    await sendSpans([makeSpan(traceId, 'agent_complete', sc.agentName, sessionId, userId, {latency_ms:10, error:'Agent loop: search_web called 7 times without progress'})]);
+    markTraceFailed(traceCard, traceId);
+
+  } else if (type === 'latency') {
+    // One massive LLM call → triggers latency_spike incident
+    addSpanToCard(traceCard, 'llm_call', '🐢 GPT-5.2 thinking... (very slow)', null, true);
+    // Simulate 4s visually (real 18s would be too long for demo)
+    for (let i = 0; i < 8; i++) {
+      await sleep(500);
+      const el = document.querySelector(`#spans-${traceId} .span-pill:last-child .span-ms`);
+      if (el) el.textContent = `${(i+1)*2}s...`;
+    }
+    await sendSpans([makeSpan(traceId, 'llm_call', sc.agentName, sessionId, userId, {
+      model: 'gpt-5.2', prompt_tokens: 1200, completion_tokens: 400,
+      latency_ms: 18400, finish_reason: 'stop'
+    })]);
+    updateSpanInCard(traceCard, 'llm_call', 'GPT-5.2 → 18,400ms ⚠ SPIKE', 18400);
+    totalTokens += 1600; updateStats();
+    await sendSpans([makeSpan(traceId, 'agent_complete', sc.agentName, sessionId, userId, {latency_ms:10})]);
+    markTraceFailed(traceCard, traceId, 'latency');
+
+  } else if (type === 'tool_error') {
+    // Tool fails 3 times with errors → retry exhausted → DLQ
+    addSpanToCard(traceCard, 'llm_call', 'GPT-5.2 reasoning...', null, true);
+    await sleep(500);
+    await sendSpans([makeSpan(traceId, 'llm_call', sc.agentName, sessionId, userId, {model:'gpt-5.2', prompt_tokens:350, completion_tokens:60, latency_ms:500})]);
+    updateSpanInCard(traceCard, 'llm_call', 'GPT-5.2 → 350+60 tokens', 500);
+
+    for (let retry = 1; retry <= 3; retry++) {
+      addSpanToCard(traceCard, 'tool_call', `🔧 query_database() [attempt ${retry}/3]`, null, true);
+      await sleep(400);
+      totalTools++;
+      updateStats();
+      await sendSpans([makeSpan(traceId, 'tool_call', sc.agentName, sessionId, userId, {
+        tool_name: 'query_database',
+        tool_input: {query: 'SELECT * FROM orders WHERE id = ?'},
+        tool_output: {error: 'HTTP 500: Internal Server Error', status: 500},
+        latency_ms: 400,
+        error: 'Tool execution failed: HTTP 500',
+        retry_count: retry
+      })]);
+      updateSpanInCard(traceCard, 'tool_call', `query_database → ✗ HTTP 500 (retry ${retry})`, 400);
+    }
+    await sendSpans([makeSpan(traceId, 'agent_complete', sc.agentName, sessionId, userId, {
+      latency_ms: 10,
+      error: 'Tool query_database failed after 3 retries',
+      retry_count: 3
+    })]);
+    markTraceFailed(traceCard, traceId);
+
+  } else if (type === 'circuit_breaker') {
+    // 3 rapid failures → circuit breaker opens
+    for (let i = 1; i <= 3; i++) {
+      const subTraceId = traceId + '_' + i;
+      const subCard = createTraceCard(subTraceId, `Attempt ${i}/3 — failing`);
+      await sendSpans([makeSpan(subTraceId, 'agent_start', sc.agentName, sessionId, userId, {latency_ms:10})]);
+      addSpanToCard(subCard, 'tool_call', `🔧 call_payment_api() [attempt ${i}]`, null, true);
+      await sleep(350);
+      totalTools++;
+      updateStats();
+      await sendSpans([makeSpan(subTraceId, 'tool_call', sc.agentName, sessionId, userId, {
+        tool_name: 'call_payment_api',
+        tool_input: {action: 'process_refund'},
+        tool_output: {error: 'Connection refused'},
+        latency_ms: 350,
+        error: 'Connection refused'
+      })]);
+      updateSpanInCard(subCard, 'tool_call', `call_payment_api → ✗ Connection refused`, 350);
+      await sendSpans([makeSpan(subTraceId, 'agent_complete', sc.agentName, sessionId, userId, {latency_ms:5, error:'Agent failed: connection refused'})]);
+      markTraceFailed(subCard, subTraceId);
+      totalRuns++;
+      updateStats();
+    }
+  }
+
+  // Show result message in chat
+  const resultDiv = document.createElement('div');
+  resultDiv.className = 'msg agent';
+  resultDiv.innerHTML = `
+    <div class="msg-avatar agent">🤖</div>
+    <div>
+      <div class="msg-bubble" style="border-color:#dc2626;background:#450a0a22">
+        <strong style="color:#f87171">⚠ ${sc.label}</strong><br>
+        <span style="font-size:13px">${sc.description}</span>
+        <div style="margin-top:10px;padding:8px 10px;background:#0a0e1a;border-radius:6px;font-size:11px;color:#818cf8">
+          🛡️ <strong>Sentinel.AI detected this automatically.</strong><br>
+          Check the <a href="/dashboard" style="color:#60a5fa">Incidents tab</a> on the dashboard to see the alert.
+        </div>
+      </div>
+      <div style="font-size:10px;color:#475569;margin-top:4px">${new Date().toLocaleTimeString()}</div>
+    </div>`;
+  document.getElementById('chat-messages').appendChild(resultDiv);
+  document.getElementById('chat-messages').scrollTop = 99999;
+
+  isRunning = false;
+  document.getElementById('send-btn').disabled = false;
+}
+
+// ── RELIABILITY SUMMARY (shown after every normal run) ───────
+function showReliabilitySummary(query, stepLog) {
+  const container = document.getElementById('chat-messages');
+
+  // Compute what was tracked
+  const toolCalls = stepLog.filter(s => s.type === 'tool');
+  const llmCalls  = stepLog.filter(s => s.type === 'llm').length + 1; // +1 for reasoning step
+  const latencyMs = 800 + Math.floor(Math.random() * 2200); // simulated total
+  const tokens    = Math.floor(totalTokens / Math.max(totalRuns, 1));
+  const cost      = (tokens / 1000 * 0.015).toFixed(4);
+  const sloOk     = latencyMs < 5000;
+
+  // Build what Sentinel.AI measured
+  const metrics = [
+    { icon: '⏱️', label: 'Latency',     value: `${latencyMs}ms`,   ok: sloOk,  note: sloOk ? 'within SLO' : '⚠ SLO breach' },
+    { icon: '🧠', label: 'LLM calls',   value: `${llmCalls}`,      ok: true,   note: 'GPT-5.2' },
+    { icon: '🔧', label: 'Tool calls',  value: `${toolCalls.length}`, ok: true, note: toolCalls.map(t => t.badge === 'TOOL' ? t.text.replace(/<[^>]+>/g,'').split('"')[0].trim() : '').filter(Boolean).join(', ') || 'none' },
+    { icon: '💰', label: 'Cost',        value: `$${cost}`,          ok: true,   note: `${tokens} tokens` },
+    { icon: '✅', label: 'SLO Status',  value: sloOk ? 'PASSING' : 'BREACHED', ok: sloOk, note: 'P95 < 5,000ms target' },
+  ];
+
+  // Escalation note for warranty/delayed
+  const hasEscalation = toolCalls.some(t => t.text && t.text.includes('Escalating'));
+  const escalationNote = hasEscalation
+    ? `<div style="margin-top:8px;padding:6px 10px;background:#451a0322;border:1px solid #d97706;border-radius:6px;font-size:10px;color:#fb923c">
+        🎫 <strong>Escalation tool called</strong> — Sentinel.AI tracked this tool call, its latency, and whether it succeeded. If it had timed out or returned an error, an incident would have been auto-created.
+       </div>`
+    : '';
+
+  const div = document.createElement('div');
+  div.style.cssText = 'margin:4px 0 8px 42px';
+  div.innerHTML = `
+    <div style="padding:10px 12px;background:#0a0e1a;border:1px solid #1e2d4a;border-radius:8px;font-size:11px">
+      <div style="color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+        🛡️ Sentinel.AI tracked this run
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px">
+        ${metrics.map(m => `
+          <div style="display:flex;align-items:center;gap:6px;padding:3px 0">
+            <span>${m.icon}</span>
+            <span style="color:#64748b;min-width:60px">${m.label}</span>
+            <span style="font-weight:700;color:${m.ok ? '#34d399' : '#f87171'}">${m.value}</span>
+            <span style="color:#475569;font-size:10px">${m.note}</span>
+          </div>`).join('')}
+      </div>
+      ${escalationNote}
+      <div style="margin-top:8px;font-size:10px;color:#475569">
+        Every span above is stored in the backend. <a href="/dashboard" style="color:#60a5fa">View full trace →</a>
+      </div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function markTraceFailed(card, traceId, variant) {
+  card.classList.remove('active');
+  const statusEl = card.querySelector('.trace-status');
+  statusEl.className = 'trace-status failed';
+  statusEl.textContent = variant === 'latency' ? 'slo breach' : 'failed';
+  const footer = card.querySelector('[id^="footer-"]');
+  if (footer) footer.innerHTML = `<span style="color:#f87171">✗ incident created</span><span>📊 <a href="/dashboard?tab=incidents" style="color:#60a5fa">view incidents</a></span>`;
+}
 </script>
 </body>
 </html>
