@@ -930,17 +930,19 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 app.post('/api/contact', async (req, res) => {
   const { name, org, email, message } = req.body;
+  console.log('Contact form submission:', { name, org, email, messageLength: message?.length });
   if (!name || !email || !message) return res.status(400).json({ error: 'Missing required fields' });
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: 'Sentinel.AI <onboarding@resend.dev>',
       to: 'sumedhakhatter482@gmail.com',
       subject: `Sentinel.AI — Message from ${name}${org ? ` (${org})` : ''}`,
       text: `Name: ${name}\nOrg: ${org || '—'}\nEmail: ${email}\n\n${message}`,
     });
+    console.log('Resend result:', JSON.stringify(result));
     res.json({ ok: true });
   } catch (err) {
-    console.error('Contact email error:', err.message);
+    console.error('Contact email error:', err.message, err.stack);
     res.status(500).json({ error: 'Failed to send email' });
   }
 });
