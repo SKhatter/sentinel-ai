@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Sentinel AI — Reliability Infrastructure for AI Agents</title>
+<meta name="description" content="The Datadog for AI Agents. Monitor, protect, and debug your AI agent pipelines in production. Circuit breakers, blast radius containment, rollback & replay.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060a14;
+  --bg2:#0a0e1a;
+  --bg3:#0f1629;
+  --border:#1e2d4a;
+  --text:#e2e8f0;
+  --muted:#64748b;
+  --purple:#818cf8;
+  --purple-dark:#4f46e5;
+  --cyan:#22d3ee;
+  --green:#34d399;
+  --red:#f87171;
+  --orange:#fb923c;
+}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(6,10,20,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 40px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.nav-logo-text{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-links a{font-size:13px;color:var(--muted);transition:color .15s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{display:flex;align-items:center;gap:10px}
+.btn-ghost{padding:7px 16px;border:1px solid var(--border);border-radius:7px;font-size:13px;color:var(--text);cursor:pointer;transition:all .15s;background:transparent}
+.btn-ghost:hover{border-color:var(--purple);color:var(--purple)}
+.btn-primary{padding:7px 18px;background:linear-gradient(135deg,var(--purple-dark),#7c3aed);border:none;border-radius:7px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;transition:all .15s}
+.btn-primary:hover{transform:scale(1.03);box-shadow:0 0 20px rgba(99,102,241,.4)}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;overflow:hidden}
+.hero-glow{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(ellipse,rgba(99,102,241,.15) 0%,transparent 70%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:20px;font-size:12px;color:var(--purple);margin-bottom:24px}
+.hero-badge .dot{width:6px;height:6px;background:var(--purple);border-radius:50%;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+h1{font-size:clamp(36px,6vw,72px);font-weight:800;line-height:1.05;letter-spacing:-.03em;color:#fff;margin-bottom:20px;max-width:900px}
+h1 .gradient{background:linear-gradient(135deg,#818cf8,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:clamp(16px,2vw,20px);color:var(--muted);max-width:600px;line-height:1.6;margin-bottom:36px}
+.hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:60px}
+.btn-hero{padding:14px 28px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-hero-primary{background:linear-gradient(135deg,var(--purple-dark),#7c3aed);border:none;color:#fff;box-shadow:0 0 30px rgba(99,102,241,.3)}
+.btn-hero-primary:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(99,102,241,.5)}
+.btn-hero-secondary{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-hero-secondary:hover{border-color:var(--purple);color:var(--purple)}
+
+/* Dashboard preview */
+.hero-preview{width:100%;max-width:1000px;border-radius:16px;border:1px solid var(--border);overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.6);background:var(--bg3)}
+.preview-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px}
+.preview-dot{width:10px;height:10px;border-radius:50%}
+.preview-url{flex:1;text-align:center;font-size:11px;color:var(--muted)}
+.preview-tabs{display:flex;gap:0;padding:0 16px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto}
+.preview-tab{padding:8px 14px;font-size:11px;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent}
+.preview-tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+.preview-content{padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.preview-stat{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.preview-stat-val{font-size:22px;font-weight:700;color:#fff}
+.preview-stat-label{font-size:10px;color:var(--muted);margin-top:2px}
+.preview-stat-sub{font-size:10px;margin-top:4px}
+.ok{color:var(--green)}.warn{color:var(--orange)}.crit{color:var(--red)}.info{color:#60a5fa}
+
+/* ── LOGOS ── */
+.logos{padding:40px 24px;text-align:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.logos-label{font-size:12px;color:var(--muted);margin-bottom:20px;text-transform:uppercase;letter-spacing:.1em}
+.logos-row{display:flex;align-items:center;justify-content:center;gap:40px;flex-wrap:wrap;opacity:.5}
+.logo-item{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.01em}
+
+/* ── PROBLEM ── */
+.section{padding:80px 24px;max-width:1100px;margin:0 auto}
+.section-label{font-size:12px;color:var(--purple);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.section-title{font-size:clamp(28px,4vw,44px);font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:16px}
+.section-sub{font-size:16px;color:var(--muted);max-width:600px;line-height:1.6}
+
+.problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+.problem-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:20px}
+.problem-icon{font-size:28px;margin-bottom:12px}
+.problem-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:6px}
+.problem-desc{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* ── FEATURES ── */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+.feature-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:24px;transition:all .2s;cursor:default}
+.feature-card:hover{border-color:var(--purple-dark);transform:translateY(-2px);box-shadow:0 8px 30px rgba(99,102,241,.15)}
+.feature-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px}
+.feature-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:6px}
+.feature-desc{font-size:13px;color:var(--muted);line-height:1.6}
+.feature-tag{display:inline-block;margin-top:10px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(99,102,241,.15);color:var(--purple)}
+
+/* ── HOW IT WORKS ── */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:40px;position:relative}
+.steps::before{content:'';position:absolute;top:28px;left:12.5%;right:12.5%;height:1px;background:linear-gradient(90deg,transparent,var(--border),var(--border),transparent)}
+.step{text-align:center;padding:0 16px}
+.step-num{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--purple-dark),#7c3aed);display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 16px;position:relative;z-index:1}
+.step-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:6px}
+.step-desc{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* ── METRICS ── */
+.metrics{background:var(--bg3);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:60px 24px}
+.metrics-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+.metric{text-align:center;padding:0 20px;border-right:1px solid var(--border)}
+.metric:last-child{border-right:none}
+.metric-val{font-size:42px;font-weight:800;color:#fff;letter-spacing:-.03em;background:linear-gradient(135deg,#818cf8,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.metric-label{font-size:13px;color:var(--muted);margin-top:4px}
+
+/* ── CTA ── */
+.cta-section{padding:100px 24px;text-align:center}
+.cta-box{max-width:700px;margin:0 auto;background:linear-gradient(135deg,rgba(79,70,229,.1),rgba(124,58,237,.1));border:1px solid rgba(99,102,241,.3);border-radius:20px;padding:60px 40px}
+.cta-title{font-size:clamp(28px,4vw,44px);font-weight:800;color:#fff;letter-spacing:-.02em;margin-bottom:12px}
+.cta-sub{font-size:16px;color:var(--muted);margin-bottom:32px}
+.cta-input-row{display:flex;gap:10px;max-width:440px;margin:0 auto}
+.cta-input{flex:1;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;transition:border-color .15s}
+.cta-input:focus{border-color:var(--purple)}
+.cta-input::placeholder{color:var(--muted)}
+.cta-submit{padding:12px 20px;background:linear-gradient(135deg,var(--purple-dark),#7c3aed);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s}
+.cta-submit:hover{transform:scale(1.03)}
+.cta-note{font-size:11px;color:var(--muted);margin-top:12px}
+
+/* ── FOOTER ── */
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px 40px;display:flex;align-items:center;justify-content:space-between}
+.footer-logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#fff}
+.footer-links{display:flex;gap:24px}
+.footer-links a{font-size:12px;color:var(--muted);transition:color .15s}
+.footer-links a:hover{color:var(--text)}
+.footer-copy{font-size:12px;color:var(--muted)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  nav{padding:0 20px}
+  .nav-links{display:none}
+  .problem-grid,.features-grid{grid-template-columns:1fr}
+  .steps{grid-template-columns:repeat(2,1fr)}
+  .steps::before{display:none}
+  .metrics-inner{grid-template-columns:repeat(2,1fr)}
+  .metric{border-right:none;border-bottom:1px solid var(--border);padding:20px}
+  .cta-input-row{flex-direction:column}
+  footer{flex-direction:column;gap:16px;text-align:center}
+}
+
+/* ── ANIMATIONS ── */
+.fade-in{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">⚡</div>
+    <div class="nav-logo-text">Agent Sentinel AI</div>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How it works</a>
+    <a href="#demo">Demo</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+  <div class="nav-cta">
+    <a href="/dashboard"><button class="btn-ghost">Dashboard</button></a>
+    <a href="/agent-demo"><button class="btn-primary">🤖 Live Demo</button></a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge"><span class="dot"></span> Now in Early Access</div>
+  <h1>The <span class="gradient">Reliability Layer</span><br>for AI Agents</h1>
+  <p class="hero-sub">Monitor, protect, and debug your AI agent pipelines in production. Circuit breakers, blast radius containment, rollback & replay — built for the agentic era.</p>
+  <div class="hero-ctas">
+    <a href="/agent-demo"><button class="btn-hero btn-hero-primary">🤖 See Live Agent Demo</button></a>
+    <a href="/dashboard"><button class="btn-hero btn-hero-secondary">📊 View Dashboard</button></a>
+  </div>
+
+  <!-- Dashboard preview mockup -->
+  <div class="hero-preview fade-in">
+    <div class="preview-bar">
+      <div class="preview-dot" style="background:#f87171"></div>
+      <div class="preview-dot" style="background:#fbbf24"></div>
+      <div class="preview-dot" style="background:#34d399"></div>
+      <div class="preview-url">agentsentinelai.com/dashboard</div>
+    </div>
+    <div class="preview-tabs">
+      <div class="preview-tab active">📊 Overview</div>
+      <div class="preview-tab">🔀 Workflows</div>
+      <div class="preview-tab">🔗 Traces</div>
+      <div class="preview-tab">🚨 Incidents</div>
+      <div class="preview-tab">💥 Blast Radius</div>
+      <div class="preview-tab">🛡️ Reliability</div>
+      <div class="preview-tab">⏮️ Replay</div>
+      <div class="preview-tab">🎯 SLOs</div>
+    </div>
+    <div class="preview-content">
+      <div class="preview-stat"><div class="preview-stat-val ok">97.3%</div><div class="preview-stat-label">Success Rate</div><div class="preview-stat-sub ok">23 ok / 1 failed</div></div>
+      <div class="preview-stat"><div class="preview-stat-val warn">12</div><div class="preview-stat-label">Open Incidents</div><div class="preview-stat-sub warn">3 critical</div></div>
+      <div class="preview-stat"><div class="preview-stat-val info">4</div><div class="preview-stat-label">Active Workflows</div><div class="preview-stat-sub info">6 active agents</div></div>
+      <div class="preview-stat"><div class="preview-stat-val crit">1/4</div><div class="preview-stat-label">Circuit Breakers</div><div class="preview-stat-sub crit">⚠ 1 OPEN</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGOS -->
+<div class="logos">
+  <div class="logos-label">Works with any LLM or agent framework</div>
+  <div class="logos-row">
+    <div class="logo-item">OpenAI</div>
+    <div class="logo-item">Anthropic</div>
+    <div class="logo-item">LangChain</div>
+    <div class="logo-item">AutoGen</div>
+    <div class="logo-item">CrewAI</div>
+    <div class="logo-item">Google Gemini</div>
+    <div class="logo-item">Llama</div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section class="section fade-in" id="problem">
+  <div class="section-label">The Problem</div>
+  <div class="section-title">AI agents fail in ways<br>you can't see coming</div>
+  <div class="section-sub">Traditional APM tools were built for deterministic software. AI agents are non-deterministic, multi-step, and chain together — they need a completely different reliability layer.</div>
+  <div class="problem-grid">
+    <div class="problem-card">
+      <div class="problem-icon">🔗</div>
+      <div class="problem-title">Silent cascading failures</div>
+      <div class="problem-desc">One agent fails quietly. Three downstream agents never run. Your users get a broken experience with no error in your logs.</div>
+    </div>
+    <div class="problem-card">
+      <div class="problem-icon">🔄</div>
+      <div class="problem-title">Infinite agent loops</div>
+      <div class="problem-desc">An agent calls the same tool 50 times in a loop. You burn $200 in API costs before anyone notices. No circuit breaker to stop it.</div>
+    </div>
+    <div class="problem-card">
+      <div class="problem-icon">🕵️</div>
+      <div class="problem-title">No replay capability</div>
+      <div class="problem-desc">A long-running agent fails at step 47 of 50. You have to restart from scratch. No checkpoints, no rollback, no way to debug the exact failure.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section fade-in" id="features">
+  <div class="section-label">Features</div>
+  <div class="section-title">Everything you need to run<br>agents in production</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(99,102,241,.15)">🔀</div>
+      <div class="feature-title">Multi-Agent Orchestration Tracing</div>
+      <div class="feature-desc">Track every handoff across agent pipelines. See the full DAG of which agents called which, where the chain broke, and why.</div>
+      <span class="feature-tag">Cascading failure detection</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(220,38,38,.15)">💥</div>
+      <div class="feature-title">Blast Radius Containment</div>
+      <div class="feature-desc">Before a failure spreads: "If the orchestrator fails, it affects 3 downstream agents, 47 users, and 12 active workflows." Contain it instantly.</div>
+      <span class="feature-tag">Dependency graph analysis</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(234,179,8,.15)">⚡</div>
+      <div class="feature-title">Circuit Breakers</div>
+      <div class="feature-desc">Auto-stop routing to a failing agent after N failures. Auto-recover after a configurable timeout. No human intervention needed.</div>
+      <span class="feature-tag">Auto-recovery</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(8,145,178,.15)">⏮️</div>
+      <div class="feature-title">Rollback & Replay</div>
+      <div class="feature-desc">Every agent step is checkpointed. Replay from any exact point with modified inputs — without re-running the full workflow from scratch.</div>
+      <span class="feature-tag">State snapshots</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(5,150,105,.15)">🎯</div>
+      <div class="feature-title">Error Budget SLOs</div>
+      <div class="feature-desc">Not just "is it broken" — "at this burn rate, you'll exhaust your reliability budget in 4 hours." Proactive alerts before SLOs breach.</div>
+      <span class="feature-tag">Burn rate alerts</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(124,58,237,.15)">📬</div>
+      <div class="feature-title">Dead Letter Queue</div>
+      <div class="feature-desc">Failed tasks don't disappear. They queue up with full context — error, retry count, state snapshot — and you retry them with one click.</div>
+      <span class="feature-tag">Zero task loss</span>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section fade-in" id="how-it-works">
+  <div class="section-label">How it works</div>
+  <div class="section-title">Up and running in minutes</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-title">Wrap your agent</div>
+      <div class="step-desc">Add 3 lines of Python to your existing agent code using our SDK</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-title">Traces flow in</div>
+      <div class="step-desc">Every LLM call, tool use, and agent handoff is captured automatically</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-title">Failures detected</div>
+      <div class="step-desc">Loops, cascades, silent errors, and SLO breaches are caught in real-time</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-title">Replay & fix</div>
+      <div class="step-desc">Replay any failed run from any checkpoint with modified inputs</div>
+    </div>
+  </div>
+</section>
+
+<!-- CODE SNIPPET -->
+<section class="section fade-in">
+  <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:24px;font-family:'SF Mono',Monaco,monospace;font-size:13px;line-height:1.8">
+    <div style="color:var(--muted);margin-bottom:12px;font-size:11px;text-transform:uppercase;letter-spacing:.1em">Python SDK — 3 lines to instrument your agent</div>
+    <div><span style="color:#64748b"># Before</span></div>
+    <div><span style="color:#f87171">response = openai.chat.completions.create(...)</span></div>
+    <br>
+    <div><span style="color:#64748b"># After — full observability, circuit breakers, replay</span></div>
+    <div><span style="color:var(--cyan)">from</span> <span style="color:var(--text)">agent_sentinel</span> <span style="color:var(--cyan)">import</span> <span style="color:var(--purple)">AgentTracer</span></div>
+    <div><span style="color:var(--text)">tracer = AgentTracer(endpoint=</span><span style="color:var(--green)">"https://agentsentinelai.com/api/agent/spans"</span><span style="color:var(--text)">)</span></div>
+    <br>
+    <div><span style="color:var(--cyan)">with</span> <span style="color:var(--text)">tracer.trace(</span><span style="color:var(--green)">"my-agent"</span><span style="color:var(--text)">, session_id=sid) </span><span style="color:var(--cyan)">as</span> <span style="color:var(--text)">trace:</span></div>
+    <div><span style="color:var(--text)">    </span><span style="color:var(--cyan)">with</span> <span style="color:var(--text)">trace.span(</span><span style="color:var(--green)">"llm_call"</span><span style="color:var(--text)">, model=</span><span style="color:var(--green)">"gpt-5.2"</span><span style="color:var(--text)">) </span><span style="color:var(--cyan)">as</span> <span style="color:var(--text)">span:</span></div>
+    <div><span style="color:var(--text)">        response = openai.chat.completions.create(...)</span></div>
+    <div><span style="color:var(--text)">        span.set_tokens(prompt=response.usage.prompt_tokens, ...)</span></div>
+  </div>
+</section>
+
+<!-- METRICS -->
+<div class="metrics fade-in">
+  <div class="metrics-inner">
+    <div class="metric"><div class="metric-val">99.9%</div><div class="metric-label">Uptime SLA</div></div>
+    <div class="metric"><div class="metric-val">&lt;50ms</div><div class="metric-label">Trace ingestion latency</div></div>
+    <div class="metric"><div class="metric-val">6</div><div class="metric-label">Reliability primitives</div></div>
+    <div class="metric"><div class="metric-val">∞</div><div class="metric-label">Agent frameworks supported</div></div>
+  </div>
+</div>
+
+<!-- CTA -->
+<section class="cta-section fade-in" id="demo">
+  <div class="cta-box">
+    <div class="cta-title">Ready to see it live?</div>
+    <div class="cta-sub">Watch a real AI agent run in production — with every step traced, every failure caught, and full replay capability.</div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
+      <a href="/agent-demo"><button class="btn-hero btn-hero-primary" style="font-size:14px;padding:12px 24px">🤖 Live Agent Demo</button></a>
+      <a href="/dashboard"><button class="btn-hero btn-hero-secondary" style="font-size:14px;padding:12px 24px">📊 Open Dashboard</button></a>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:20px;margin-top:8px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Or get early access — we'll reach out within 24 hours</div>
+      <div class="cta-input-row">
+        <input class="cta-input" type="email" placeholder="your@email.com" id="email-input">
+        <button class="cta-submit" onclick="submitEmail()">Get Early Access</button>
+      </div>
+      <div class="cta-note" id="email-status">No spam. Unsubscribe anytime.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <div style="width:24px;height:24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">⚡</div>
+    Agent Sentinel AI
+  </div>
+  <div class="footer-links">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/agent-demo">Demo</a>
+    <a href="#features">Features</a>
+    <a href="mailto:hello@agentsentinelai.com">Contact</a>
+  </div>
+  <div class="footer-copy">© 2026 Agent Sentinel AI. All rights reserved.</div>
+</footer>
+
+<script>
+// Fade in on scroll
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Email submit
+function submitEmail() {
+  const email = document.getElementById('email-input').value;
+  const status = document.getElementById('email-status');
+  if (!email || !email.includes('@')) { status.textContent = '⚠ Please enter a valid email'; status.style.color = '#f87171'; return; }
+  status.textContent = '✅ You\'re on the list! We\'ll be in touch within 24 hours.';
+  status.style.color = '#34d399';
+  document.getElementById('email-input').value = '';
+}
+</script>
+</body>
+</html>

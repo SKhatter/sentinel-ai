@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TechStore - Demo E-commerce</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <!-- Observability SDK -->
+  <script>
+    class ObservabilitySDK {
+      constructor(config = {}) {
+        this.apiKey = config.apiKey || '';
+        this.endpoint = config.endpoint || 'http://localhost:3001/api/events';
+        this.userId = config.userId || this.generateUserId();
+        this.sessionId = this.generateSessionId();
+        this.queue = [];
+        this.flushInterval = config.flushInterval || 5000;
+        this.maxQueueSize = config.maxQueueSize || 50;
+        this.debug = config.debug || false;
+        this.init();
+      }
+
+      init() {
+        this.trackPageView();
+        document.addEventListener('click', (e) => this.handleClick(e), true);
+        document.addEventListener('submit', (e) => this.handleFormSubmit(e), true);
+        window.addEventListener('error', (e) => this.handleError(e));
+        window.addEventListener('beforeunload', () => this.flush());
+        this.flushTimer = setInterval(() => this.flush(), this.flushInterval);
+        this.log('SDK initialized');
+      }
+
+      generateUserId() {
+        let userId = localStorage.getItem('obs_user_id');
+        if (!userId) {
+          userId = 'user_' + Math.random().toString(36).substr(2, 9);
+          localStorage.setItem('obs_user_id', userId);
+        }
+        return userId;
+      }
+
+      generateSessionId() {
+        return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      }
+
+      log(...args) {
+        if (this.debug) console.log('[ObservabilitySDK]', ...args);
+      }
+
+      trackPageView() {
+        this.track('page_view', {
+          url: window.location.href,
+          path: window.location.pathname,
+          referrer: document.referrer,
+          title: document.title
+        });
+      }
+
+      handleClick(event) {
+        const target = event.target;
+        const tagName = target.tagName.toLowerCase();
+        const selector = this.getElementSelector(target);
+        const text = target.textContent?.trim().substring(0, 100) || '';
+        
+        this.track('click', {
+          element: tagName,
+          selector: selector,
+          text: text,
+          x: event.clientX,
+          y: event.clientY,
+          href: target.href || null
+        });
+
+        if (target.disabled || target.classList.contains('disabled')) {
+          this.trackGap('attempted_disabled_action', { element: selector, text: text });
+        }
+
+        if (tagName === 'button' && !target.onclick && !target.href && !target.form) {
+          this.trackGap('non_functional_button', { element: selector, text: text });
+        }
+      }
+
+      handleFormSubmit(event) {
+        const form = event.target;
+        this.track('form_submit', {
+          form_id: form.id || null,
+          action: form.action || null
+        });
+      }
+
+      handleError(event) {
+        this.track('error', {
+          message: event.message,
+          filename: event.filename,
+          lineno: event.lineno
+        });
+      }
+
+      getElementSelector(element) {
+        if (element.id) return `#${element.id}`;
+        if (element.className) {
+          const classes = element.className.split(' ').filter(c => c).slice(0, 2).join('.');
+          return `${element.tagName.toLowerCase()}.${classes}`;
+        }
+        return element.tagName.toLowerCase();
+      }
+
+      track(eventName, properties = {}) {
+        const event = {
+          event: eventName,
+          timestamp: new Date().toISOString(),
+          user_id: this.userId,
+          session_id: this.sessionId,
+          properties: {
+            ...properties,
+            viewport_width: window.innerWidth,
+            viewport_height: window.innerHeight,
+            user_agent: navigator.userAgent,
+            language: navigator.language
+          }
+        };
+
+        this.queue.push(event);
+        this.log('Event tracked:', eventName, properties);
+
+        if (this.queue.length >= this.maxQueueSize) {
+          this.flush();
+        }
+      }
+
+      trackGap(gapType, details = {}) {
+        this.track('gap_detected', {
+          gap_type: gapType,
+          ...details
+        });
+        this.log('Gap detected:', gapType, details);
+      }
+
+      async flush() {
+        if (this.queue.length === 0) return;
+
+        const events = [...this.queue];
+        this.queue = [];
+
+        try {
+          const response = await fetch(this.endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Key': this.apiKey
+            },
+            body: JSON.stringify({ events }),
+            keepalive: true
+          });
+
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          this.log(`Flushed ${events.length} events`);
+        } catch (error) {
+          console.error('[ObservabilitySDK] Failed to send events:', error);
+          this.queue.unshift(...events);
+        }
+      }
+
+      trackFeatureAttempt(featureName, properties = {}) {
+        this.trackGap('feature_attempt', {
+          feature: featureName,
+          ...properties
+        });
+      }
+    }
+
+    // Initialize SDK
+    const obs = new ObservabilitySDK({
+      endpoint: 'http://localhost:3001/api/events',
+      debug: true
+    });
+  </script>
+
+  <!-- Header -->
+  <nav class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <h1 class="text-2xl font-bold text-purple-600">TechStore</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <button class="text-gray-700 hover:text-purple-600" onclick="showCart()">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+          </button>
+          <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+            Sign In
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <h2 class="text-4xl font-bold mb-4">Premium Tech at Your Fingertips</h2>
+      <p class="text-xl mb-8">Discover the latest gadgets and electronics</p>
+      <button class="px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-gray-100">
+        Shop Now
+      </button>
+    </div>
+  </div>
+
+  <!-- Products Grid -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <h3 class="text-2xl font-bold mb-8">Featured Products</h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Product 1 -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
+        <div class="h-48 bg-gray-200 flex items-center justify-center">
+          <span class="text-gray-400 text-6xl">📱</span>
+        </div>
+        <div class="p-6">
+          <h4 class="text-lg font-semibold mb-2">Smartphone Pro X</h4>
+          <p class="text-gray-600 mb-4">Latest flagship with AI camera</p>
+          <div class="flex justify-between items-center">
+            <span class="text-2xl font-bold text-purple-600">$999</span>
+            <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700" onclick="addToCart('Smartphone Pro X')">
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 2 -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
+        <div class="h-48 bg-gray-200 flex items-center justify-center">
+          <span class="text-gray-400 text-6xl">💻</span>
+        </div>
+        <div class="p-6">
+          <h4 class="text-lg font-semibold mb-2">Laptop Ultra</h4>
+          <p class="text-gray-600 mb-4">Powerful performance, sleek design</p>
+          <div class="flex justify-between items-center">
+            <span class="text-2xl font-bold text-purple-600">$1,499</span>
+            <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700" onclick="addToCart('Laptop Ultra')">
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 3 - Missing Feature Demo -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
+        <div class="h-48 bg-gray-200 flex items-center justify-center">
+          <span class="text-gray-400 text-6xl">🎧</span>
+        </div>
+        <div class="p-6">
+          <h4 class="text-lg font-semibold mb-2">Wireless Headphones</h4>
+          <p class="text-gray-600 mb-4">Premium sound, noise cancellation</p>
+          <div class="flex justify-between items-center">
+            <span class="text-2xl font-bold text-purple-600">$299</span>
+            <!-- This button will trigger gap detection -->
+            <button class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed" disabled>
+              Out of Stock
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features that don't exist (will trigger gap detection) -->
+    <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <button class="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow text-left" onclick="attemptFeature('wishlist')">
+        <div class="text-3xl mb-2">❤️</div>
+        <h4 class="font-semibold mb-1">Add to Wishlist</h4>
+        <p class="text-sm text-gray-600">Save for later</p>
+      </button>
+
+      <button class="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow text-left" onclick="attemptFeature('compare')">
+        <div class="text-3xl mb-2">⚖️</div>
+        <h4 class="font-semibold mb-1">Compare Products</h4>
+        <p class="text-sm text-gray-600">Side by side comparison</p>
+      </button>
+
+      <button class="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow text-left" onclick="attemptFeature('export')">
+        <div class="text-3xl mb-2">📄</div>
+        <h4 class="font-semibold mb-1">Export to PDF</h4>
+        <p class="text-sm text-gray-600">Download product catalog</p>
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white mt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div>
+          <h5 class="font-bold mb-4">About</h5>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white">About Us</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Careers</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Press</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5 class="font-bold mb-4">Support</h5>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white">Help Center</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Contact Us</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Returns</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5 class="font-bold mb-4">Legal</h5>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white">Privacy Policy</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Terms of Service</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Cookie Policy</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5 class="font-bold mb-4">Newsletter</h5>
+          <p class="text-gray-400 mb-4">Stay updated with our latest offers</p>
+          <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 w-full">
+            Subscribe
+          </button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function showCart() {
+      alert('🛒 Cart feature - This click was tracked!');
+    }
+
+    function addToCart(product) {
+      obs.track('add_to_cart', { product_name: product });
+      alert(`✅ Added ${product} to cart!`);
+    }
+
+    function attemptFeature(feature) {
+      // Track that user attempted to use a feature that doesn't exist
+      obs.trackFeatureAttempt(feature, {
+        clicked_from: 'features_grid'
+      });
+      alert(`⚠️ "${feature}" feature is not yet available. This gap has been detected and reported!`);
+    }
+
+    // Simulate some user behavior after page load
+    setTimeout(() => {
+      console.log('Demo: Simulating user activity...');
+      // This helps generate initial data for the dashboard
+    }, 1000);
+  </script>
+</body>
+</html>

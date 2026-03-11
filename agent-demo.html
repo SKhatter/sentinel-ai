@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TechStore AI Support — Live Agent Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0e1a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: #0f1629;
+      border-bottom: 1px solid #1e2d4a;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .header-title { font-size: 16px; font-weight: 700; color: #fff; }
+    .header-sub { font-size: 11px; color: #64748b; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .model-badge {
+      padding: 4px 12px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .dashboard-link {
+      padding: 6px 14px;
+      background: #1e3a5f;
+      color: #60a5fa;
+      border: 1px solid #2563eb;
+      border-radius: 6px;
+      font-size: 12px;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .dashboard-link:hover { background: #2563eb; color: #fff; }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 0;
+      height: calc(100vh - 65px);
+    }
+
+    /* ── CHAT PANEL ── */
+    .chat-panel {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #1e2d4a;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Welcome screen */
+    .welcome {
+      text-align: center;
+      padding: 60px 20px;
+      color: #475569;
+    }
+    .welcome-icon { font-size: 64px; margin-bottom: 16px; }
+    .welcome h2 { font-size: 22px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; }
+    .welcome p { font-size: 14px; color: #475569; margin-bottom: 24px; }
+    .quick-queries { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .quick-btn {
+      padding: 8px 16px;
+      background: #0f1629;
+      border: 1px solid #1e2d4a;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .quick-btn:hover { background: #1e3a5f; border-color: #2563eb; color: #60a5fa; }
+
+    /* Message bubbles */
+    .msg { display: flex; gap: 10px; align-items: flex-start; }
+    .msg.user { flex-direction: row-reverse; }
+    .msg-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .msg-avatar.agent { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+    .msg-avatar.user  { background: linear-gradient(135deg, #0891b2, #06b6d4); }
+    .msg-bubble {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .msg.agent .msg-bubble {
+      background: #0f1629;
+      border: 1px solid #1e2d4a;
+      border-top-left-radius: 4px;
+      color: #e2e8f0;
+    }
+    .msg.user .msg-bubble {
+      background: linear-gradient(135deg, #1e3a5f, #1e2d4a);
+      border: 1px solid #2563eb;
+      border-top-right-radius: 4px;
+      color: #e2e8f0;
+    }
+    .msg-time { font-size: 10px; color: #475569; margin-top: 4px; }
+
+    /* Thinking / tool steps */
+    .thinking-steps {
+      background: #0a0e1a;
+      border: 1px solid #1e2d4a;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .thinking-title { color: #64748b; font-size: 11px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .step-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid #0f1629;
+      animation: fadeIn 0.3s ease;
+    }
+    .step-row:last-child { border-bottom: none; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .step-icon { font-size: 14px; flex-shrink: 0; }
+    .step-text { color: #94a3b8; flex: 1; }
+    .step-text strong { color: #e2e8f0; }
+    .step-badge {
+      padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; flex-shrink: 0;
+    }
+    .step-badge.llm  { background: #1e1b4b; color: #818cf8; }
+    .step-badge.tool { background: #0c2a3a; color: #22d3ee; }
+    .step-badge.done { background: #064e3b; color: #34d399; }
+
+    /* Typing indicator */
+    .typing {
+      display: flex; align-items: center; gap: 4px; padding: 12px 16px;
+      background: #0f1629; border: 1px solid #1e2d4a; border-radius: 12px;
+      border-top-left-radius: 4px; width: fit-content;
+    }
+    .typing-dot {
+      width: 6px; height: 6px; background: #4f46e5; border-radius: 50%;
+      animation: typingBounce 1.2s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+    /* ── INPUT BAR ── */
+    .input-bar {
+      padding: 16px 24px;
+      background: #0f1629;
+      border-top: 1px solid #1e2d4a;
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .input-wrap { flex: 1; position: relative; }
+    .chat-input {
+      width: 100%;
+      background: #0a0e1a;
+      border: 1px solid #1e2d4a;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #e2e8f0;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.15s;
+      min-height: 48px;
+      max-height: 120px;
+    }
+    .chat-input:focus { border-color: #4f46e5; }
+    .chat-input::placeholder { color: #475569; }
+    .send-btn {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border: none; border-radius: 10px;
+      color: #fff; font-size: 18px;
+      cursor: pointer; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .send-btn:hover { transform: scale(1.05); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ── TRACE PANEL ── */
+    .trace-panel {
+      display: flex;
+      flex-direction: column;
+      background: #0a0e1a;
+    }
+    .trace-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #1e2d4a;
+      background: #0f1629;
+    }
+    .trace-header-title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; }
+    .trace-header-sub { font-size: 11px; color: #475569; }
+    .trace-list { flex: 1; overflow-y: auto; padding: 16px; }
+
+    /* Live trace card */
+    .trace-card {
+      background: #0f1629;
+      border: 1px solid #1e2d4a;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      animation: fadeIn 0.3s ease;
+    }
+    .trace-card.active { border-color: #4f46e5; }
+    .trace-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .trace-agent-name { font-size: 12px; font-weight: 600; color: #e2e8f0; }
+    .trace-status {
+      padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700;
+    }
+    .trace-status.running   { background: #1e3a5f; color: #60a5fa; }
+    .trace-status.completed { background: #064e3b; color: #34d399; }
+    .trace-status.failed    { background: #450a0a; color: #f87171; }
+    .trace-query { font-size: 11px; color: #64748b; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trace-spans { display: flex; flex-direction: column; gap: 3px; }
+    .span-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 8px; border-radius: 5px; font-size: 10px;
+      animation: fadeIn 0.2s ease;
+    }
+    .span-pill.llm_call      { background: rgba(79,70,229,0.2); color: #818cf8; }
+    .span-pill.tool_call     { background: rgba(8,145,178,0.2); color: #22d3ee; }
+    .span-pill.agent_start   { background: rgba(5,150,105,0.2); color: #34d399; }
+    .span-pill.agent_complete{ background: rgba(124,58,237,0.2); color: #a78bfa; }
+    .span-pill.error         { background: rgba(220,38,38,0.2); color: #f87171; }
+    .span-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .span-name { flex: 1; }
+    .span-ms { color: #475569; }
+    .trace-footer { display: flex; gap: 12px; margin-top: 8px; font-size: 10px; color: #475569; }
+    .trace-footer span { display: flex; align-items: center; gap: 3px; }
+
+    /* Stats bar */
+    .stats-bar {
+      padding: 12px 16px;
+      border-top: 1px solid #1e2d4a;
+      background: #0f1629;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .stat-mini { text-align: center; }
+    .stat-mini-val { font-size: 16px; font-weight: 700; color: #fff; }
+    .stat-mini-label { font-size: 10px; color: #475569; margin-top: 1px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e2d4a; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">🛍️</div>
+    <div>
+      <div class="header-title">TechStore AI Support</div>
+      <div class="header-sub">Powered by Agent Reliability Platform</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="model-badge">⚡ GPT-5.2</span>
+    <a href="http://localhost:3001" target="_blank" class="dashboard-link">📊 View Dashboard</a>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- CHAT PANEL -->
+  <div class="chat-panel">
+    <div class="chat-messages" id="chat-messages">
+      <div class="welcome" id="welcome-screen">
+        <div class="welcome-icon">🤖</div>
+        <h2>TechStore AI Support Agent</h2>
+        <p>Ask me anything about your orders, returns, shipping, or products.<br>Every step I take is traced live on the dashboard.</p>
+        <div class="quick-queries">
+          <button class="quick-btn" onclick="sendQuick('Where is my order ORD-1002?')">📦 Track order ORD-1002</button>
+          <button class="quick-btn" onclick="sendQuick('What is your return policy?')">↩️ Return policy</button>
+          <button class="quick-btn" onclick="sendQuick('My order ORD-1004 is delayed!')">⚠️ Delayed order ORD-1004</button>
+          <button class="quick-btn" onclick="sendQuick('Can I cancel order ORD-1003?')">❌ Cancel order ORD-1003</button>
+          <button class="quick-btn" onclick="sendQuick('Do you accept PayPal?')">💳 Payment methods</button>
+          <button class="quick-btn" onclick="sendQuick('My laptop is broken, warranty claim')">🔧 Warranty claim</button>
+        </div>
+      </div>
+    </div>
+    <div class="input-bar">
+      <div class="input-wrap">
+        <textarea
+          id="chat-input"
+          class="chat-input"
+          placeholder="Ask about your order, returns, shipping..."
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+      </div>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+  <!-- TRACE PANEL -->
+  <div class="trace-panel">
+    <div class="trace-header">
+      <div class="trace-header-title">🔗 Live Agent Traces</div>
+      <div class="trace-header-sub">Every step sent to the observability dashboard</div>
+    </div>
+    <div class="trace-list" id="trace-list">
+      <div style="text-align:center;padding:40px 20px;color:#475569;font-size:13px">
+        <div style="font-size:32px;margin-bottom:8px">🔗</div>
+        Traces will appear here as the agent runs
+      </div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-mini">
+        <div class="stat-mini-val" id="stat-runs">0</div>
+        <div class="stat-mini-label">Agent Runs</div>
+      </div>
+      <div class="stat-mini">
+        <div class="stat-mini-val" id="stat-tokens">0</div>
+        <div class="stat-mini-label">Tokens Used</div>
+      </div>
+      <div class="stat-mini">
+        <div class="stat-mini-val" id="stat-tools">0</div>
+        <div class="stat-mini-label">Tool Calls</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = 'http://localhost:3001';
+let totalRuns = 0, totalTokens = 0, totalTools = 0;
+let isRunning = false;
+
+// ── KNOWLEDGE BASE & ORDERS (mirrors demo_agent.py) ─────────
+const KB = {
+  "return policy":      "You can return any item within 30 days for a full refund. Items must be unused and in original packaging.",
+  "shipping times":     "Standard shipping: 5-7 business days. Express: 1-2 days. Free shipping on orders over $50.",
+  "warranty":           "All electronics come with a 1-year manufacturer warranty. Extended warranties available.",
+  "payment methods":    "We accept Visa, Mastercard, Amex, PayPal, and Apple Pay. All transactions are SSL secured.",
+  "cancel order":       "Orders can be cancelled within 1 hour of placement. After that, wait for delivery and initiate a return.",
+  "discount codes":     "Discount codes apply at checkout. Case-sensitive, cannot be combined with other offers.",
+  "account issues":     "Reset password via 'Forgot Password' on login page. Lockouts: contact support@techstore.com.",
+  "product availability":"Check real-time stock on the product page. Add out-of-stock items to wishlist for restock alerts.",
+};
+
+const ORDERS = {
+  "ORD-1001": {status:"delivered",  item:"Smartphone Pro X",   date:"2026-03-05", tracking:"TRK9821"},
+  "ORD-1002": {status:"in_transit", item:"Laptop Ultra",        date:"2026-03-08", tracking:"TRK4432"},
+  "ORD-1003": {status:"processing", item:"Wireless Headphones", date:"2026-03-10", tracking:null},
+  "ORD-1004": {status:"delayed",    item:"Smart Watch",          date:"2026-03-01", tracking:"TRK7761"},
+  "ORD-1005": {status:"cancelled",  item:"USB-C Hub",            date:"2026-03-09", tracking:null},
+};
+
+// ── TOOL IMPLEMENTATIONS ─────────────────────────────────────
+function searchKB(query) {
+  const q = query.toLowerCase();
+  const results = Object.entries(KB)
+    .filter(([k]) => k.split(' ').some(w => q.includes(w)) || q.split(' ').some(w => k.includes(w)))
+    .map(([topic, content]) => ({topic, content}));
+  return results.length ? {results, count: results.length} : {results:[{topic:"general",content:"Please contact support@techstore.com for further assistance."}], count:1};
+}
+
+function checkOrder(orderId) {
+  const order = ORDERS[orderId.toUpperCase()];
+  if (!order) return {error: `Order ${orderId} not found. Please verify the order ID.`};
+  return {
+    order_id: orderId.toUpperCase(),
+    status: order.status,
+    item: order.item,
+    order_date: order.date,
+    tracking_number: order.tracking,
+    estimated_delivery: order.status === 'in_transit' ? '2026-03-15' : null
+  };
+}
+
+function escalate(reason, priority) {
+  const ticketId = 'TKT-' + Math.floor(10000 + Math.random() * 90000);
+  return {
+    ticket_id: ticketId,
+    status: 'created',
+    priority,
+    reason,
+    assigned_to: 'Support Team',
+    estimated_response: ['high','urgent'].includes(priority) ? 'within 2 hours' : 'within 24 hours'
+  };
+}
+
+// ── AGENT DECISION ENGINE ────────────────────────────────────
+function agentDecide(query) {
+  const q = query.toLowerCase();
+  const steps = [];
+  const orderMatch = q.match(/ord-\d+/);
+
+  if (orderMatch) {
+    const orderId = orderMatch[0].toUpperCase();
+    steps.push({type:'tool', name:'check_order_status', args:{order_id:orderId}});
+    const order = ORDERS[orderId] || {};
+    const status = order.status || 'unknown';
+    const item = order.item || 'your item';
+
+    if (status === 'in_transit') {
+      steps.push({type:'respond', text:`I checked your order **${orderId}** for the **${item}**. It's currently **in transit** with tracking number ${order.tracking}. Estimated delivery is March 15, 2026. You can track it on our website using the tracking number.`});
+    } else if (status === 'delivered') {
+      steps.push({type:'respond', text:`Your order **${orderId}** for the **${item}** was **delivered** on ${order.date}. If you haven't received it, please check with neighbors or your building's mailroom. If it's still missing, I can escalate this for you.`});
+    } else if (status === 'delayed') {
+      steps.push({type:'tool', name:'escalate_to_human', args:{reason:`Order ${orderId} for ${item} is delayed since ${order.date}. Customer needs urgent update.`, priority:'high'}});
+      steps.push({type:'respond', text:`I'm sorry to hear your order **${orderId}** for the **${item}** is delayed. I've escalated this to our support team with **high priority**. You'll receive a response within 2 hours with a resolution or updated delivery date.`});
+    } else if (status === 'processing') {
+      steps.push({type:'tool', name:'search_knowledge_base', args:{query:'cancel order'}});
+      steps.push({type:'respond', text:`Your order **${orderId}** for the **${item}** is still **processing** (placed ${order.date}). It hasn't shipped yet. If you'd like to cancel, please contact us immediately at support@techstore.com.`});
+    } else if (status === 'cancelled') {
+      steps.push({type:'respond', text:`Your order **${orderId}** for the **${item}** has been **cancelled**. If you didn't request this, please contact support@techstore.com immediately. Refunds appear within 5-7 business days.`});
+    }
+    return steps;
+  }
+
+  if (/return|refund|policy/.test(q)) {
+    steps.push({type:'tool', name:'search_knowledge_base', args:{query:'return policy'}});
+    steps.push({type:'respond', text:`Our **return policy** allows you to return any item within **30 days** of purchase for a full refund. Items must be unused and in their original packaging. To start a return, visit your order history and click 'Return Item', or contact support@techstore.com.`});
+  } else if (/ship|delivery|arrive|when/.test(q)) {
+    steps.push({type:'tool', name:'search_knowledge_base', args:{query:'shipping times'}});
+    steps.push({type:'respond', text:`Our **shipping options**:\n• **Standard**: 5-7 business days (free on orders over $50)\n• **Express**: 1-2 business days\n\nYou'll receive a tracking number via email once shipped.`});
+  } else if (/pay|paypal|visa|card|payment/.test(q)) {
+    steps.push({type:'tool', name:'search_knowledge_base', args:{query:'payment methods'}});
+    steps.push({type:'tool', name:'search_knowledge_base', args:{query:'shipping times'}});
+    steps.push({type:'respond', text:`Yes, we accept **PayPal**, Visa, Mastercard, Amex, and Apple Pay — all secured with SSL encryption.\n\n**Shipping**: Standard is 5-7 business days (free over $50), Express is 1-2 business days.`});
+  } else if (/cancel/.test(q)) {
+    steps.push({type:'tool', name:'search_knowledge_base', args:{query:'cancel order'}});
+    steps.push({type:'respond', text:`Orders can be **cancelled within 1 hour** of placement. After that, you'll need to wait for delivery and initiate a return. Would you like me to check your specific order status?`});
+  } else if (/warranty|broken|defect|repair/.test(q)) {
+    steps.push({type:'tool', name:'search_knowledge_base', args:{query:'warranty'}});
+    steps.push({type:'tool', name:'escalate_to_human', args:{reason:'Customer reporting potential defective product or warranty claim', priority:'medium'}});
+    steps.push({type:'respond', text:`All our electronics come with a **1-year manufacturer warranty**. I've created a support ticket for your warranty claim — our team will contact you within 24 hours to guide you through the process.`});
+  } else {
+    steps.push({type:'tool', name:'search_knowledge_base', args:{query}});
+    steps.push({type:'tool', name:'escalate_to_human', args:{reason:`Customer query could not be automatically resolved: '${query}'`, priority:'low'}});
+    steps.push({type:'respond', text:`Thank you for reaching out! I've searched our knowledge base and created a support ticket. Our team will get back to you within 24 hours. For urgent issues: support@techstore.com.`});
+  }
+  return steps;
+}
+
+// ── SEND SPANS TO BACKEND ────────────────────────────────────
+async function sendSpans(spans) {
+  try {
+    await fetch(`${API}/api/agent/spans`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({spans})
+    });
+  } catch(e) { console.error('Failed to send spans:', e); }
+}
+
+function makeSpan(traceId, stepType, agentName, sessionId, userId, extra={}) {
+  return {
+    trace_id: traceId,
+    span_id: 'span_' + Math.random().toString(36).substr(2,12),
+    step_type: stepType,
+    agent_name: agentName,
+    session_id: sessionId,
+    user_id: userId,
+    timestamp: new Date().toISOString(),
+    ...extra
+  };
+}
+
+// ── MAIN AGENT RUNNER ────────────────────────────────────────
+async function runAgent(query) {
+  const traceId = 'trace_web_' + Date.now().toString(36);
+  const sessionId = 'session_web_' + Math.floor(Date.now()/1000);
+  const userId = 'user_web_' + Math.floor(Math.random()*9000+1000);
+  const agentName = 'support-agent-gpt52';
+
+  // Create trace card in panel
+  const traceCard = createTraceCard(traceId, query);
+  totalRuns++;
+  updateStats();
+
+  // Send agent_start
+  const startSpan = makeSpan(traceId, 'agent_start', agentName, sessionId, userId, {latency_ms: 30});
+  await sendSpans([startSpan]);
+
+  // Step 1: LLM reasoning
+  const thinkMs = 800 + Math.random() * 1200;
+  addSpanToCard(traceCard, 'llm_call', 'GPT-5.2 reasoning...', null, true);
+  await sleep(thinkMs);
+  const pTokens = Math.floor(400 + Math.random() * 400);
+  const cTokens = Math.floor(80 + Math.random() * 120);
+  totalTokens += pTokens + cTokens;
+  updateStats();
+  const llmSpan1 = makeSpan(traceId, 'llm_call', agentName, sessionId, userId, {
+    model: 'gpt-5.2', prompt_tokens: pTokens, completion_tokens: cTokens,
+    latency_ms: Math.round(thinkMs), finish_reason: 'tool_calls'
+  });
+  await sendSpans([llmSpan1]);
+  updateSpanInCard(traceCard, 'llm_call', `GPT-5.2 → ${pTokens}+${cTokens} tokens`, Math.round(thinkMs));
+
+  // Steps 2+: tools + final response
+  const steps = agentDecide(query);
+  let finalResponse = null;
+
+  for (const step of steps) {
+    if (step.type === 'tool') {
+      const toolMs = 150 + Math.random() * 400;
+      addSpanToCard(traceCard, 'tool_call', `🔧 ${step.name}(${JSON.stringify(step.args).substring(0,40)}...)`, null, true);
+      await sleep(toolMs);
+
+      let result;
+      if (step.name === 'check_order_status') result = checkOrder(step.args.order_id);
+      else if (step.name === 'search_knowledge_base') result = searchKB(step.args.query);
+      else if (step.name === 'escalate_to_human') result = escalate(step.args.reason, step.args.priority);
+
+      totalTools++;
+      updateStats();
+      const toolSpan = makeSpan(traceId, 'tool_call', agentName, sessionId, userId, {
+        tool_name: step.name,
+        tool_input: step.args,
+        tool_output: result,
+        latency_ms: Math.round(toolMs)
+      });
+      await sendSpans([toolSpan]);
+      updateSpanInCard(traceCard, 'tool_call', `✅ ${step.name}`, Math.round(toolMs));
+
+    } else if (step.type === 'respond') {
+      finalResponse = step.text;
+      const synthMs = 500 + Math.random() * 1000;
+      addSpanToCard(traceCard, 'llm_call', 'GPT-5.2 composing response...', null, true);
+      await sleep(synthMs);
+      const p2 = Math.floor(600 + Math.random() * 600);
+      const c2 = Math.floor(100 + Math.random() * 200);
+      totalTokens += p2 + c2;
+      updateStats();
+      const llmSpan2 = makeSpan(traceId, 'llm_call', agentName, sessionId, userId, {
+        model: 'gpt-5.2', prompt_tokens: p2, completion_tokens: c2,
+        latency_ms: Math.round(synthMs), finish_reason: 'stop'
+      });
+      await sendSpans([llmSpan2]);
+      updateSpanInCard(traceCard, 'llm_call', `GPT-5.2 → ${p2}+${c2} tokens`, Math.round(synthMs));
+    }
+  }
+
+  // Send agent_complete
+  const endSpan = makeSpan(traceId, 'agent_complete', agentName, sessionId, userId, {latency_ms: 20});
+  await sendSpans([endSpan]);
+  markTraceComplete(traceCard);
+
+  return finalResponse;
+}
+
+// ── UI HELPERS ───────────────────────────────────────────────
+function createTraceCard(traceId, query) {
+  const list = document.getElementById('trace-list');
+  // Clear empty state
+  if (list.querySelector('div[style]')) list.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'trace-card active';
+  card.id = 'trace-' + traceId;
+  card.innerHTML = `
+    <div class="trace-card-header">
+      <div class="trace-agent-name">🤖 support-agent-gpt52</div>
+      <span class="trace-status running">running</span>
+    </div>
+    <div class="trace-query">${query}</div>
+    <div class="trace-spans" id="spans-${traceId}"></div>
+    <div class="trace-footer" id="footer-${traceId}">
+      <span>⏱️ running...</span>
+    </div>`;
+  list.insertBefore(card, list.firstChild);
+  return card;
+}
+
+let _pendingSpans = {};
+
+function addSpanToCard(card, type, label, ms, pending=false) {
+  const traceId = card.id.replace('trace-', '');
+  const container = document.getElementById('spans-' + traceId);
+  const spanEl = document.createElement('div');
+  spanEl.className = `span-pill ${type}`;
+  const icon = type === 'llm_call' ? '🧠' : type === 'tool_call' ? '🔧' : '⚡';
+  spanEl.innerHTML = `<div class="span-dot"></div><span class="span-name">${icon} ${label}</span>${ms ? `<span class="span-ms">${ms}ms</span>` : '<span class="span-ms">...</span>'}`;
+  if (pending) {
+    spanEl.dataset.pending = '1';
+    _pendingSpans[traceId] = spanEl;
+  }
+  container.appendChild(spanEl);
+  card.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function updateSpanInCard(card, type, label, ms) {
+  const traceId = card.id.replace('trace-', '');
+  const pending = _pendingSpans[traceId];
+  if (pending) {
+    const icon = type === 'llm_call' ? '🧠' : type === 'tool_call' ? '🔧' : '⚡';
+    pending.innerHTML = `<div class="span-dot"></div><span class="span-name">${icon} ${label}</span><span class="span-ms">${ms}ms</span>`;
+    delete pending.dataset.pending;
+    delete _pendingSpans[traceId];
+  }
+}
+
+function markTraceComplete(card) {
+  card.classList.remove('active');
+  const statusEl = card.querySelector('.trace-status');
+  statusEl.className = 'trace-status completed';
+  statusEl.textContent = 'completed';
+  const footer = card.querySelector('[id^="footer-"]');
+  if (footer) footer.innerHTML = `<span>✅ completed</span><span>📊 <a href="http://localhost:3001" target="_blank" style="color:#60a5fa">view on dashboard</a></span>`;
+}
+
+function updateStats() {
+  document.getElementById('stat-runs').textContent = totalRuns;
+  document.getElementById('stat-tokens').textContent = totalTokens >= 1000 ? (totalTokens/1000).toFixed(1)+'K' : totalTokens;
+  document.getElementById('stat-tools').textContent = totalTools;
+}
+
+// ── CHAT UI ──────────────────────────────────────────────────
+function addMessage(role, text, steps=[]) {
+  const container = document.getElementById('chat-messages');
+  const welcome = document.getElementById('welcome-screen');
+  if (welcome) welcome.remove();
+
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const avatar = role === 'agent' ? '🤖' : '👤';
+  const avatarClass = role === 'agent' ? 'agent' : 'user';
+
+  // Convert **bold** markdown
+  const formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+
+  let stepsHtml = '';
+  if (steps.length) {
+    stepsHtml = `<div class="thinking-steps">
+      <div class="thinking-title">Agent reasoning steps</div>
+      ${steps.map(s => `<div class="step-row">
+        <span class="step-icon">${s.icon}</span>
+        <span class="step-text">${s.text}</span>
+        <span class="step-badge ${s.type}">${s.badge}</span>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  div.innerHTML = `
+    <div class="msg-avatar ${avatarClass}">${avatar}</div>
+    <div>
+      <div class="msg-bubble">${formatted}${stepsHtml}</div>
+      <div class="msg-time">${new Date().toLocaleTimeString()}</div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function addTyping() {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+  div.id = 'typing-indicator';
+  div.innerHTML = `
+    <div class="msg-avatar agent">🤖</div>
+    <div class="typing">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+async function sendMessage() {
+  if (isRunning) return;
+  const input = document.getElementById('chat-input');
+  const query = input.value.trim();
+  if (!query) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  isRunning = true;
+  document.getElementById('send-btn').disabled = true;
+
+  // Show user message
+  addMessage('user', query);
+  addTyping();
+
+  // Run agent
+  const steps = agentDecide(query);
+  const stepLog = [];
+
+  // Collect step info for display
+  stepLog.push({icon:'🧠', text:'<strong>GPT-5.2</strong> analyzing query and deciding tools to use', type:'llm', badge:'LLM'});
+  for (const s of steps) {
+    if (s.type === 'tool') {
+      const toolLabels = {
+        check_order_status: `Checking order status for <strong>${s.args.order_id || 'order'}</strong>`,
+        search_knowledge_base: `Searching knowledge base for <strong>"${s.args.query}"</strong>`,
+        escalate_to_human: `Escalating to human agent with <strong>${s.args.priority}</strong> priority`
+      };
+      stepLog.push({icon:'🔧', text: toolLabels[s.name] || s.name, type:'tool', badge:'TOOL'});
+    }
+  }
+  stepLog.push({icon:'✅', text:'<strong>GPT-5.2</strong> composing final response', type:'done', badge:'DONE'});
+
+  const response = await runAgent(query);
+  removeTyping();
+
+  // Show agent response with steps
+  addMessage('agent', response || 'I apologize, I could not process your request.', stepLog);
+
+  isRunning = false;
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
+}
+
+function sendQuick(query) {
+  document.getElementById('chat-input').value = query;
+  sendMessage();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
