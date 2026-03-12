@@ -16,6 +16,7 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3001;
 console.log('ENV CHECK — RESEND_API_KEY set:', !!process.env.RESEND_API_KEY);
+console.log('All env var names:', Object.keys(process.env).join(', '));
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
