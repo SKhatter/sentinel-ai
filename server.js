@@ -930,7 +930,7 @@ function seedDemoData() {
 app.post('/api/contact', async (req, res) => {
   const { name, org, email, message } = req.body;
   console.log('Contact form submission:', { name, org, email, messageLength: message?.length });
-  console.log('RESEND_API_KEY prefix:', process.env.RESEND_API_KEY?.slice(0, 6), 'length:', process.env.RESEND_API_KEY?.length);
+  console.log('ALL ENV KEYS:', Object.keys(process.env).sort().join(', '));
   if (!name || !email || !message) return res.status(400).json({ error: 'Missing required fields' });
   try {
     const response = await fetch('https://api.resend.com/emails', {
