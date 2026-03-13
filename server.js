@@ -39,6 +39,9 @@ const agentIncidents = [];
 const workflows = new Map();         // workflow_id → workflow
 const agentDependencyGraph = {};     // agent_name → Set of agents it calls
 
+// Workflow runs (replay-enabled)
+const workflowRuns = new Map();      // run_id → run object
+
 // Checkpoints (for replay)
 const checkpoints = new Map();       // trace_id → [checkpoint, ...]
 
@@ -920,9 +923,281 @@ function seedDemoData() {
     webEvents.push({ id: genId(), event: webTypes[i % webTypes.length], timestamp: new Date(now - (24 - i * 0.48) * 3600000).toISOString(), user_id: 'user_demo_' + (i % 8), session_id: 'session_demo_' + Math.floor(i / 5), received_at: new Date().toISOString(), properties: { path: ['/', '/products', '/cart', '/checkout'][i % 4], selector: ['button.add-to-cart', 'a.nav-link', '#checkout-btn'][i % 3], text: ['Add to Cart', 'Shop Now', 'Checkout'][i % 3] } });
   }
 
+  // Seed workflow run demo data
+  const runNow = new Date();
+  const runStart = new Date(runNow - 45 * 60 * 1000).toISOString();
+  workflowRuns.set('run_demo_001', {
+    run_id: 'run_demo_001',
+    parent_run_id: null,
+    workflow_name: 'Customer Outreach Pipeline',
+    status: 'failed',
+    started_at: runStart,
+    completed_at: new Date(runNow - 44 * 60 * 1000).toISOString(),
+    replay_origin_step_id: null,
+    steps: [
+      {
+        step_id: 'step_intake',
+        run_id: 'run_demo_001',
+        step_order: 1,
+        step_name: 'intake-agent',
+        step_type: 'llm_call',
+        status: 'success',
+        started_at: new Date(runNow - 45 * 60 * 1000).toISOString(),
+        completed_at: new Date(runNow - 45 * 60 * 1000 + 1200).toISOString(),
+        duration_ms: 1200,
+        input_payload: { task: 'intake_customer_request', customer_id: 'cust_882' },
+        output_payload: { intake_summary: 'Customer requests personalized outreach', priority: 'high' },
+        error_message: null,
+        checkpoint_id: 'cp_intake_001',
+        upstream_step_ids: [],
+        replayed_from_step_id: null
+      },
+      {
+        step_id: 'step_research',
+        run_id: 'run_demo_001',
+        step_order: 2,
+        step_name: 'research-agent',
+        step_type: 'tool_call',
+        status: 'success',
+        started_at: new Date(runNow - 45 * 60 * 1000 + 1200).toISOString(),
+        completed_at: new Date(runNow - 45 * 60 * 1000 + 3500).toISOString(),
+        duration_ms: 2300,
+        input_payload: { customer_id: 'cust_882', research_depth: 'full' },
+        output_payload: { company: 'Acme Corp', industry: 'SaaS', signals: ['fundraise', 'hiring'] },
+        error_message: null,
+        checkpoint_id: 'cp_research_001',
+        upstream_step_ids: ['step_intake'],
+        replayed_from_step_id: null
+      },
+      {
+        step_id: 'step_personalize',
+        run_id: 'run_demo_001',
+        step_order: 3,
+        step_name: 'personalize-agent',
+        step_type: 'api_call',
+        status: 'failed',
+        started_at: new Date(runNow - 45 * 60 * 1000 + 3500).toISOString(),
+        completed_at: new Date(runNow - 45 * 60 * 1000 + 3950).toISOString(),
+        duration_ms: 450,
+        input_payload: { customer_id: 'cust_882', research_data: { company: 'Acme Corp' } },
+        output_payload: null,
+        error_message: 'CRM API timeout: connection refused after 450ms (endpoint: /api/v2/personalize)',
+        checkpoint_id: 'cp_personalize_001',
+        upstream_step_ids: ['step_research'],
+        replayed_from_step_id: null
+      },
+      {
+        step_id: 'step_notify',
+        run_id: 'run_demo_001',
+        step_order: 4,
+        step_name: 'notify-agent',
+        step_type: 'notification',
+        status: 'blocked',
+        started_at: new Date(runNow - 45 * 60 * 1000 + 3950).toISOString(),
+        completed_at: null,
+        duration_ms: null,
+        input_payload: { channel: 'email', template: 'outreach_v2' },
+        output_payload: null,
+        error_message: "Blocked: upstream step 'personalize-agent' failed",
+        checkpoint_id: 'cp_notify_001',
+        upstream_step_ids: ['step_personalize'],
+        replayed_from_step_id: null
+      }
+    ],
+    incidents: [
+      {
+        incident_id: 'inc_demo_001',
+        run_id: 'run_demo_001',
+        step_id: 'step_personalize',
+        incident_type: 'agent_error',
+        severity: 'high',
+        title: 'Personalization step failed',
+        description: "CRM API timeout caused personalize-agent to fail. notify-agent is blocked.",
+        created_at: new Date(runNow - 45 * 60 * 1000 + 3950).toISOString(),
+        resolved_at: null,
+        status: 'open'
+      }
+    ]
+  });
+
   console.log(`✅ Seeded: ${agentTraces.size} traces, ${agentSpans.length} spans, ${agentIncidents.length} incidents, ${workflows.size} workflows`);
   console.log(`   Circuit breakers: ${circuitBreakers.size}, Error budgets: ${errorBudgets.size}, DLQ: ${deadLetterQueue.length}`);
 }
+
+// ============================================================
+// WORKFLOW RUNS API (Replay + Incident Timeline)
+// ============================================================
+app.get('/api/workflow-runs', (req, res) => {
+  try {
+    const runs = Array.from(workflowRuns.values())
+      .sort((a, b) => new Date(b.started_at) - new Date(a.started_at));
+    res.json(runs);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/workflow-runs/:runId', (req, res) => {
+  try {
+    const run = workflowRuns.get(req.params.runId);
+    if (!run) return res.status(404).json({ error: 'Run not found' });
+    res.json(run);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/workflow-runs/:runId/replay', (req, res) => {
+  try {
+    const run = workflowRuns.get(req.params.runId);
+    if (!run) return res.status(404).json({ error: 'Run not found' });
+
+    const failedStep = run.steps.find(s => s.status === 'failed');
+    if (!failedStep) return res.status(400).json({ error: 'No failed step found' });
+
+    const failedIdx = run.steps.indexOf(failedStep);
+    const newRunId = run.run_id + '_replay_1';
+
+    // Don't create a duplicate replay
+    if (workflowRuns.has(newRunId)) {
+      return res.json(workflowRuns.get(newRunId));
+    }
+
+    const now = new Date().toISOString();
+
+    const reusedSteps = run.steps.slice(0, failedIdx).map(s => ({
+      ...s,
+      step_id: 'reused_' + s.step_id,
+      run_id: newRunId,
+      status: 'reused',
+      replayed_from_step_id: s.step_id
+    }));
+
+    const replayedSteps = run.steps.slice(failedIdx).map((s, i) => ({
+      ...s,
+      step_id: 'replay_' + s.step_id,
+      run_id: newRunId,
+      status: i === 0 ? 'pending' : 'pending',
+      error_message: null,
+      output_payload: null,
+      completed_at: null,
+      duration_ms: null,
+      replayed_from_step_id: s.step_id
+    }));
+
+    const newRun = {
+      run_id: newRunId,
+      parent_run_id: run.run_id,
+      workflow_name: run.workflow_name,
+      status: 'running',
+      started_at: now,
+      completed_at: null,
+      replay_origin_step_id: failedStep.step_id,
+      steps: [...reusedSteps, ...replayedSteps],
+      incidents: []
+    };
+
+    workflowRuns.set(newRunId, newRun);
+
+    // Async simulation: step through replayed steps
+    const simulate = (idx) => {
+      if (idx >= replayedSteps.length) {
+        newRun.status = 'completed';
+        newRun.completed_at = new Date().toISOString();
+        return;
+      }
+      const stepInRun = newRun.steps[reusedSteps.length + idx];
+      setTimeout(() => {
+        stepInRun.status = 'running';
+        stepInRun.started_at = new Date().toISOString();
+        setTimeout(() => {
+          stepInRun.status = 'replayed';
+          stepInRun.completed_at = new Date().toISOString();
+          stepInRun.duration_ms = 800 + Math.floor(Math.random() * 600);
+          stepInRun.output_payload = { result: 'success', replayed: true };
+          simulate(idx + 1);
+        }, 800);
+      }, idx === 0 ? 800 : 0);
+    };
+    simulate(0);
+
+    res.json(newRun);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/workflow-runs/:runId/timeline', (req, res) => {
+  try {
+    const run = workflowRuns.get(req.params.runId);
+    if (!run) return res.status(404).json({ error: 'Run not found' });
+
+    const events = [];
+
+    // workflow_started
+    events.push({
+      event_type: 'workflow_started',
+      timestamp: run.started_at,
+      title: `Workflow started: ${run.workflow_name}`,
+      description: `Run ${run.run_id} initiated`,
+      severity: null
+    });
+
+    // step events
+    run.steps.forEach(step => {
+      if (step.status === 'success' || step.status === 'replayed' || step.status === 'reused') {
+        events.push({
+          event_type: 'step_executed',
+          timestamp: step.completed_at || step.started_at,
+          title: `Step executed: ${step.step_name}`,
+          description: `${step.step_type} completed in ${step.duration_ms || 0}ms`,
+          severity: null,
+          step_id: step.step_id
+        });
+      }
+      if (step.status === 'failed') {
+        events.push({
+          event_type: 'failure_detected',
+          timestamp: step.completed_at || step.started_at,
+          title: `Failure detected: ${step.step_name}`,
+          description: step.error_message || 'Step failed',
+          severity: 'high',
+          step_id: step.step_id
+        });
+      }
+    });
+
+    // incident events
+    run.incidents.forEach(inc => {
+      events.push({
+        event_type: 'incident_created',
+        timestamp: inc.created_at,
+        title: inc.title,
+        description: inc.description,
+        severity: inc.severity,
+        incident_id: inc.incident_id
+      });
+    });
+
+    // replay events
+    if (run.parent_run_id) {
+      events.push({
+        event_type: 'replay_triggered',
+        timestamp: run.started_at,
+        title: `Replay triggered from run ${run.parent_run_id}`,
+        description: `Replaying from step: ${run.replay_origin_step_id}`,
+        severity: null
+      });
+    }
+
+    if (run.status === 'completed' && run.completed_at) {
+      events.push({
+        event_type: run.parent_run_id ? 'replay_completed' : 'workflow_completed',
+        timestamp: run.completed_at,
+        title: run.parent_run_id ? 'Replay completed successfully' : 'Workflow completed',
+        description: `${run.steps.filter(s => ['success','replayed','reused'].includes(s.status)).length}/${run.steps.length} steps successful`,
+        severity: null
+      });
+    }
+
+    events.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    res.json(events);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
 // ============================================================
 // CONTACT

@@ -171,6 +171,88 @@ a{color:inherit;text-decoration:none}
 /* AGENT DEMO LINK */
 .demo-link{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:6px;font-size:12px;color:#fff;font-weight:600;transition:all .15s}
 .demo-link:hover{transform:scale(1.02)}
+
+/* Workflow runs layout */
+.workflow-runs-layout { display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+.workflow-runs-list { display: flex; flex-direction: column; gap: 8px; }
+.run-card { background: var(--bg3,#0f1629); border: 1px solid var(--border,#1e2d4a); border-radius: 8px; padding: 14px; cursor: pointer; transition: border-color .15s; }
+.run-card:hover, .run-card.active { border-color: #818cf8; }
+.run-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.run-id { font-size: 11px; color: #64748b; font-family: monospace; }
+.run-name { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; }
+
+/* Detail pane */
+.run-detail { background: #0f1629; border: 1px solid #1e2d4a; border-radius: 8px; padding: 20px; }
+.run-detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.run-detail-title { font-size: 16px; font-weight: 700; color: #e2e8f0; }
+.run-meta { font-size: 12px; color: #64748b; margin-top: 4px; }
+.replay-lineage { font-size: 12px; color: #818cf8; margin-top: 4px; }
+
+/* Enhanced DAG */
+.dag-enhanced { display: flex; align-items: flex-start; gap: 0; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; }
+.dag-step-wrapper { display: flex; align-items: center; gap: 0; }
+.dag-step { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.dag-step-node { padding: 8px 14px; border-radius: 8px; border: 1.5px solid; font-size: 12px; font-weight: 600; min-width: 120px; text-align: center; transition: all .15s; position: relative; }
+.dag-step-node:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+.dag-step-node.success { background: #064e3b22; border-color: #059669; color: #34d399; }
+.dag-step-node.failed { background: #450a0a44; border-color: #dc2626; color: #f87171; box-shadow: 0 0 12px rgba(220,38,38,.2); }
+.dag-step-node.blocked { background: #2d1b0022; border-color: #78350f; color: #fbbf24; }
+.dag-step-node.pending { background: #1e2d4a22; border-color: #334155; color: #64748b; }
+.dag-step-node.reused { background: #1e2d4a22; border-color: #334155; color: #64748b; border-style: dashed; }
+.dag-step-node.replayed { background: #1e1b4b44; border-color: #6366f1; color: #a5b4fc; }
+.dag-step-node.running { background: #1e3a5f22; border-color: #2563eb; color: #60a5fa; }
+.dag-step-node.active-selected { outline: 2px solid #818cf8; outline-offset: 2px; }
+.dag-step-label { font-size: 10px; color: #64748b; text-align: center; }
+.dag-arrow-connector { color: #64748b; padding: 0 4px; font-size: 16px; margin-top: -16px; }
+.dag-arrow-connector.broken { color: #dc2626; }
+
+/* Step type badge */
+.step-type-badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.step-type-badge.llm_call { background: #312e81; color: #a5b4fc; }
+.step-type-badge.tool_call { background: #164e63; color: #67e8f9; }
+.step-type-badge.api_call { background: #14532d; color: #86efac; }
+.step-type-badge.notification { background: #713f12; color: #fde68a; }
+.step-type-badge.agent_handoff { background: #4a1d96; color: #ddd6fe; }
+
+/* Step detail panel */
+.step-detail-panel { background: #0a0e1a; border: 1px solid #1e2d4a; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.step-detail-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.step-detail-name { font-size: 15px; font-weight: 700; color: #e2e8f0; }
+.detail-section { margin-bottom: 12px; }
+.detail-section-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.detail-section-value { font-size: 13px; color: #e2e8f0; }
+.error-box { background: #450a0a33; border: 1px solid #dc2626; border-radius: 6px; padding: 10px 12px; font-size: 12px; color: #f87171; font-family: monospace; }
+.payload-box { background: #0f1629; border: 1px solid #1e2d4a; border-radius: 6px; padding: 10px 12px; font-size: 11px; color: #64748b; font-family: monospace; white-space: pre-wrap; max-height: 100px; overflow-y: auto; }
+.dep-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.dep-chip { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #0f1629; border: 1px solid #1e2d4a; color: #64748b; }
+.dep-chip.blocked { border-color: #78350f; color: #fbbf24; }
+.btn-replay { padding: 10px 20px; background: linear-gradient(135deg,#dc2626,#b91c1c); border: none; border-radius: 7px; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .15s; margin-top: 8px; }
+.btn-replay:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(220,38,38,.4); }
+.btn-replay:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* Incident timeline */
+.incident-timeline { display: flex; flex-direction: column; gap: 0; }
+.timeline-event { display: flex; gap: 12px; padding: 10px 0; border-left: 2px solid #1e2d4a; margin-left: 12px; padding-left: 16px; position: relative; }
+.timeline-event::before { content: ''; position: absolute; left: -5px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: #1e2d4a; }
+.timeline-event.failure::before { background: #dc2626; }
+.timeline-event.incident::before { background: #f97316; }
+.timeline-event.replay::before { background: #6366f1; }
+.timeline-event.success::before { background: #059669; }
+.timeline-event.start::before { background: #2563eb; }
+.timeline-event-icon { font-size: 14px; width: 20px; flex-shrink: 0; }
+.timeline-event-body { flex: 1; }
+.timeline-event-title { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+.timeline-event-desc { font-size: 12px; color: #64748b; }
+.timeline-event-time { font-size: 11px; color: #64748b; white-space: nowrap; }
+
+/* Replay banner */
+.replay-banner { background: #064e3b33; border: 1px solid #059669; border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #34d399; font-weight: 600; margin-bottom: 16px; }
+.replay-running-banner { background: #1e3a5f33; border: 1px solid #2563eb; border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #60a5fa; font-weight: 600; margin-bottom: 16px; }
+
+/* Badge additions */
+.badge-reused { background: #1e2d4a; color: #64748b; border: 1px dashed #334155; }
+.badge-replayed { background: #1e1b4b; color: #a5b4fc; }
+.badge-blocked { background: #2d1b00; color: #fbbf24; }
 </style>
 </head>
 <body>
@@ -281,9 +363,15 @@ a{color:inherit;text-decoration:none}
 ══════════════════════════════════════════════════════════ -->
 <div class="tab-pane" id="pane-workflows">
   <div class="section-header">
-    <div><div class="section-title">Multi-Agent Workflows</div><div class="section-sub">Orchestration pipelines, cascading failures, and step-by-step execution</div></div>
+    <div><div class="section-title">Workflow Failure Replay</div><div class="section-sub">Run-level execution traces, step failures, and one-click replay from any failure point</div></div>
+    <button class="refresh-btn" onclick="loadWorkflowRuns()">↻ Refresh</button>
   </div>
-  <div id="workflows-list"></div>
+  <div id="workflows-list">
+    <div class="workflow-runs-layout">
+      <div class="workflow-runs-list" id="run-cards-list"><div class="empty"><div class="empty-icon">🔀</div>Loading runs...</div></div>
+      <div id="run-detail-pane"><div class="empty" style="padding:60px 40px"><div class="empty-icon">👈</div>Select a run to view details</div></div>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
@@ -421,7 +509,7 @@ function showTab(name) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('pane-' + name).classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
-  const loaders = { overview: loadOverview, workflows: loadWorkflows, traces: loadTraces, incidents: loadIncidents, blast: () => {}, reliability: loadReliability, replay: loadReplay, slos: loadSLOs };
+  const loaders = { overview: loadOverview, workflows: loadWorkflowRuns, traces: loadTraces, incidents: loadIncidents, blast: () => {}, reliability: loadReliability, replay: loadReplay, slos: loadSLOs };
   if (loaders[name]) loaders[name]();
 }
 
@@ -515,6 +603,295 @@ async function loadWorkflows() {
       ${wf.failed_steps.length ? `<div style="margin-top:10px;padding:8px 12px;background:#450a0a22;border:1px solid #dc2626;border-radius:6px;font-size:11px;color:#f87171">⚠ Cascading failure detected: ${wf.failed_steps.join(' → ')} failed</div>` : ''}
     </div>`;
   }).join('');
+}
+
+// ── WORKFLOW RUNS (Replay + Incident Timeline) ────────────────
+let _activeRunId = null;
+let _replayPollInterval = null;
+
+async function loadWorkflowRuns() {
+  const runs = await fetch('/api/workflow-runs').then(r => r.json()).catch(() => []);
+  const listEl = document.getElementById('run-cards-list');
+  if (!runs.length) {
+    listEl.innerHTML = '<div class="empty"><div class="empty-icon">🔀</div>No workflow runs yet</div>';
+    return;
+  }
+  listEl.innerHTML = runs.map(run => {
+    const statusBadge = `<span class="badge badge-${run.status === 'partial' ? 'partial' : run.status}">${run.status}</span>`;
+    const miniDag = run.steps.map(s => {
+      const dotColor = { success: '#34d399', failed: '#f87171', blocked: '#fbbf24', pending: '#64748b', reused: '#64748b', replayed: '#a5b4fc', running: '#60a5fa' }[s.status] || '#64748b';
+      return `<span title="${s.step_name}: ${s.status}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${dotColor};border:${s.status === 'reused' ? '1px dashed #334155' : 'none'}"></span>`;
+    }).join('<span style="color:#334155;font-size:10px;margin:0 1px">›</span>');
+    const ago = _timeAgo(run.started_at);
+    return `<div class="run-card${_activeRunId === run.run_id ? ' active' : ''}" id="run-card-${run.run_id}" onclick="selectRun('${run.run_id}')">
+      <div class="run-card-header">
+        <span class="run-id">${run.run_id}</span>
+        ${statusBadge}
+      </div>
+      <div class="run-name">${run.workflow_name}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap">
+        ${miniDag}
+      </div>
+      <div style="font-size:10px;color:#475569;margin-top:6px">${ago}${run.parent_run_id ? ' · <span style="color:#818cf8">replay</span>' : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+async function selectRun(runId) {
+  _activeRunId = runId;
+  // Update active card styling
+  document.querySelectorAll('.run-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById('run-card-' + runId);
+  if (card) card.classList.add('active');
+
+  const run = await fetch(`/api/workflow-runs/${runId}`).then(r => r.json());
+  const timeline = await fetch(`/api/workflow-runs/${runId}/timeline`).then(r => r.json()).catch(() => []);
+  renderRunDetail(run, timeline);
+}
+
+function renderRunDetail(run, timeline) {
+  const pane = document.getElementById('run-detail-pane');
+  const dur = run.completed_at
+    ? `${((new Date(run.completed_at) - new Date(run.started_at)) / 1000).toFixed(1)}s`
+    : 'running…';
+
+  const lineage = run.parent_run_id
+    ? `<div class="replay-lineage">↩ Replay of <span style="font-family:monospace;cursor:pointer;text-decoration:underline" onclick="selectRun('${run.parent_run_id}')">${run.parent_run_id}</span></div>`
+    : '';
+
+  // Build enhanced DAG
+  const dagHtml = run.steps.map((step, i) => {
+    const prevStep = i > 0 ? run.steps[i - 1] : null;
+    const arrowBroken = prevStep && (prevStep.status === 'failed' || step.status === 'blocked');
+    const arrow = i > 0
+      ? `<div class="dag-arrow-connector${arrowBroken ? ' broken' : ''}">${arrowBroken ? '✗→' : '→'}</div>`
+      : '';
+    const failedLabel = step.status === 'failed' ? '<div style="font-size:9px;color:#f87171;font-weight:700;margin-top:2px">FAILED</div>' : '';
+    const typeBadgeHtml = `<span class="step-type-badge ${step.step_type}">${step.step_type.replace('_',' ')}</span>`;
+    const durationHtml = step.duration_ms ? `<div style="font-size:9px;color:#475569;margin-top:2px">${step.duration_ms}ms</div>` : '';
+    return `<div class="dag-step-wrapper" id="dag-wrapper-${step.step_id}">
+      ${arrow}
+      <div class="dag-step" onclick="selectStep('${run.run_id}', '${step.step_id}')">
+        <div class="dag-step-node ${step.status}" id="dag-node-${step.step_id}">
+          ${step.step_name}
+          ${failedLabel}
+          ${durationHtml}
+        </div>
+        <div class="dag-step-label">${typeBadgeHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Build incident timeline
+  const tlIcons = { workflow_started: '🚀', step_executed: '⚡', failure_detected: '🔴', incident_created: '🚨', replay_triggered: '⏮', replay_completed: '✅', workflow_completed: '✅' };
+  const tlClass = { workflow_started: 'start', step_executed: 'success', failure_detected: 'failure', incident_created: 'incident', replay_triggered: 'replay', replay_completed: 'success', workflow_completed: 'success' };
+  const timelineHtml = timeline.length ? timeline.map(ev => `
+    <div class="timeline-event ${tlClass[ev.event_type] || ''}">
+      <div class="timeline-event-icon">${tlIcons[ev.event_type] || '📍'}</div>
+      <div class="timeline-event-body">
+        <div class="timeline-event-title">${ev.title}</div>
+        <div class="timeline-event-desc">${ev.description}</div>
+      </div>
+      <div class="timeline-event-time">${new Date(ev.timestamp).toLocaleTimeString()}</div>
+    </div>`).join('') : '<div class="empty" style="padding:16px">No timeline events</div>';
+
+  pane.innerHTML = `
+    <div class="run-detail">
+      <div class="run-detail-header">
+        <div>
+          <div class="run-detail-title">${run.workflow_name}</div>
+          <div class="run-meta">
+            <span style="font-family:monospace">${run.run_id}</span>
+            · Started ${new Date(run.started_at).toLocaleString()}
+            · Duration: ${dur}
+          </div>
+          ${lineage}
+        </div>
+        <span class="badge badge-${run.status === 'partial' ? 'partial' : run.status}" style="font-size:12px;padding:4px 12px">${run.status}</span>
+      </div>
+
+      <div class="card-title" style="margin-bottom:10px"><span class="dot dot-blue"></span>Execution DAG</div>
+      <div class="dag-enhanced">${dagHtml}</div>
+
+      <div id="step-detail-container"></div>
+
+      <div class="card-title" style="margin-bottom:10px;margin-top:16px"><span class="dot dot-red"></span>Incident Timeline</div>
+      <div class="incident-timeline">${timelineHtml}</div>
+    </div>`;
+
+  // Store run in DOM for step detail
+  pane.dataset.runJson = JSON.stringify(run);
+}
+
+function selectStep(runId, stepId) {
+  // Clear previous selection
+  document.querySelectorAll('.dag-step-node').forEach(n => n.classList.remove('active-selected'));
+  const node = document.getElementById('dag-node-' + stepId);
+  if (node) node.classList.add('active-selected');
+
+  const pane = document.getElementById('run-detail-pane');
+  const run = JSON.parse(pane.dataset.runJson || '{}');
+  const step = (run.steps || []).find(s => s.step_id === stepId);
+  if (!step) return;
+
+  const blockedDownstream = (run.steps || []).filter(s =>
+    s.status === 'blocked' && s.upstream_step_ids && s.upstream_step_ids.includes(step.step_id)
+  );
+
+  const upstreamNames = (step.upstream_step_ids || []).map(uid => {
+    const us = (run.steps || []).find(s => s.step_id === uid);
+    return us ? us.step_name : uid;
+  });
+
+  const container = document.getElementById('step-detail-container');
+  container.innerHTML = `
+    <div class="step-detail-panel">
+      <div class="step-detail-header">
+        <span class="step-detail-name">${step.step_name}</span>
+        <span class="step-type-badge ${step.step_type}">${step.step_type.replace('_',' ')}</span>
+        <span class="badge badge-${step.status === 'success' ? 'completed' : step.status === 'failed' ? 'failed' : step.status === 'blocked' ? 'blocked' : step.status === 'replayed' ? 'replayed' : step.status === 'reused' ? 'reused' : 'partial'}">${step.status}</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
+        <div class="detail-section">
+          <div class="detail-section-label">Started</div>
+          <div class="detail-section-value">${step.started_at ? new Date(step.started_at).toLocaleTimeString() : '—'}</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-label">Completed</div>
+          <div class="detail-section-value">${step.completed_at ? new Date(step.completed_at).toLocaleTimeString() : '—'}</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-label">Duration</div>
+          <div class="detail-section-value">${step.duration_ms != null ? step.duration_ms + 'ms' : '—'}</div>
+        </div>
+      </div>
+
+      ${step.error_message ? `
+        <div class="detail-section">
+          <div class="detail-section-label">Error</div>
+          <div class="error-box">${step.error_message}</div>
+        </div>` : ''}
+
+      <div class="detail-section">
+        <div class="detail-section-label">Input Payload</div>
+        <div class="payload-box">${JSON.stringify(step.input_payload || {}, null, 2)}</div>
+      </div>
+
+      ${step.output_payload ? `
+        <div class="detail-section">
+          <div class="detail-section-label">Output Payload</div>
+          <div class="payload-box">${JSON.stringify(step.output_payload, null, 2)}</div>
+        </div>` : ''}
+
+      ${upstreamNames.length ? `
+        <div class="detail-section">
+          <div class="detail-section-label">Upstream Dependencies</div>
+          <div class="dep-list">${upstreamNames.map(n => `<span class="dep-chip">${n}</span>`).join('')}</div>
+        </div>` : ''}
+
+      ${blockedDownstream.length ? `
+        <div class="detail-section">
+          <div class="detail-section-label">Downstream Blocked</div>
+          <div class="dep-list">${blockedDownstream.map(s => `<span class="dep-chip blocked">⚠ ${s.step_name}</span>`).join('')}</div>
+        </div>` : ''}
+
+      <div class="detail-section">
+        <div class="detail-section-label">Checkpoint ID</div>
+        <div class="detail-section-value" style="font-family:monospace;font-size:11px;color:#64748b">${step.checkpoint_id}</div>
+      </div>
+
+      ${step.status === 'failed' ? `
+        <button class="btn-replay" id="btn-replay-step" onclick="triggerReplay('${runId}')">
+          ⏮ Replay from here
+        </button>` : ''}
+    </div>`;
+}
+
+async function triggerReplay(runId) {
+  const btn = document.getElementById('btn-replay-step');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Starting replay…'; }
+
+  const newRun = await fetch(`/api/workflow-runs/${runId}/replay`, { method: 'POST' }).then(r => r.json());
+
+  // Refresh run list
+  await loadWorkflowRuns();
+
+  // Show the replay run detail
+  const timeline = await fetch(`/api/workflow-runs/${newRun.run_id}/timeline`).then(r => r.json()).catch(() => []);
+  renderRunDetail(newRun, timeline);
+
+  // Add running banner
+  const pane = document.getElementById('run-detail-pane');
+  const detailDiv = pane.querySelector('.run-detail');
+  if (detailDiv) {
+    const banner = document.createElement('div');
+    banner.className = 'replay-running-banner';
+    banner.id = 'replay-status-banner';
+    banner.innerHTML = '⏳ Replay running — watching for completion…';
+    detailDiv.prepend(banner);
+  }
+
+  // Poll for completion
+  if (_replayPollInterval) clearInterval(_replayPollInterval);
+  let pollCount = 0;
+  _replayPollInterval = setInterval(async () => {
+    pollCount++;
+    if (pollCount > 60) { clearInterval(_replayPollInterval); return; }
+
+    const updated = await fetch(`/api/workflow-runs/${newRun.run_id}`).then(r => r.json()).catch(() => null);
+    if (!updated) return;
+
+    // Update DAG nodes live
+    (updated.steps || []).forEach(step => {
+      const node = document.getElementById('dag-node-' + step.step_id);
+      if (node) {
+        // Update class
+        node.className = 'dag-step-node ' + step.status;
+        // Update failed label if needed
+        if (step.status === 'failed') {
+          if (!node.querySelector('.failed-label')) {
+            node.insertAdjacentHTML('beforeend', '<div class="failed-label" style="font-size:9px;color:#f87171;font-weight:700;margin-top:2px">FAILED</div>');
+          }
+        }
+        // Update duration
+        if (step.duration_ms) {
+          const durEl = node.querySelector('.dur-label');
+          if (durEl) durEl.textContent = step.duration_ms + 'ms';
+          else node.insertAdjacentHTML('beforeend', `<div class="dur-label" style="font-size:9px;color:#475569;margin-top:2px">${step.duration_ms}ms</div>`);
+        }
+      }
+    });
+
+    if (updated.status === 'completed' || updated.status === 'failed') {
+      clearInterval(_replayPollInterval);
+      const newTimeline = await fetch(`/api/workflow-runs/${newRun.run_id}/timeline`).then(r => r.json()).catch(() => []);
+      renderRunDetail(updated, newTimeline);
+
+      // Show success banner
+      const pane2 = document.getElementById('run-detail-pane');
+      const detailDiv2 = pane2.querySelector('.run-detail');
+      if (detailDiv2) {
+        const banner2 = document.createElement('div');
+        banner2.className = updated.status === 'completed' ? 'replay-banner' : 'replay-running-banner';
+        banner2.innerHTML = updated.status === 'completed'
+          ? '✅ Replay completed successfully'
+          : '⚠ Replay finished with errors';
+        detailDiv2.prepend(banner2);
+      }
+      await loadWorkflowRuns();
+    }
+  }, 500);
+}
+
+function _timeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 // ── TRACES ───────────────────────────────────────────────────
